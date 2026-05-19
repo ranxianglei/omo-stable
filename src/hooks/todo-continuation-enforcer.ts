@@ -44,11 +44,13 @@ interface SessionState {
 
 const CONTINUATION_PROMPT = `${createSystemDirective(SystemDirectiveTypes.TODO_CONTINUATION)}
 
-Incomplete tasks remain in your todo list. Continue working on the next pending task.
+Incomplete tasks remain in your todo list. Before starting any work, FIRST verify whether the pending tasks are actually already done — if so, mark them completed immediately. Only then continue working on any remaining pending tasks.
 
-- Proceed without asking for permission
-- Mark each task complete when finished
-- Do not stop until all tasks are done`
+- FIRST: Check if pending tasks were already completed in previous turns. If yes, mark them as completed using the todowrite tool.
+- THEN: Continue working on the next truly pending task.
+- Proceed without asking for permission.
+- Mark each task complete when finished.
+- Do not stop until all tasks are done.`
 
 const COUNTDOWN_SECONDS = 2
 const TOAST_DURATION_MS = 900
