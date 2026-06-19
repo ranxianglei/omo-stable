@@ -280,7 +280,7 @@ async function runNonTuiInstall(args: InstallArgs): Promise<number> {
       console.log(`  ${SYMBOLS.bullet} ${err}`)
     }
     console.log()
-    printInfo("Usage: bunx oh-my-opencode install --no-tui --claude=<no|yes|max20> --gemini=<no|yes> --copilot=<no|yes>")
+    printInfo("Usage: bunx omo-stable install --no-tui --claude=<no|yes|max20> --gemini=<no|yes> --copilot=<no|yes>")
     console.log()
     return 1
   }
@@ -310,7 +310,7 @@ async function runNonTuiInstall(args: InstallArgs): Promise<number> {
 
   const config = argsToConfig(args)
 
-  printStep(step++, totalSteps, "Adding oh-my-opencode plugin...")
+  printStep(step++, totalSteps, "Adding omo-stable plugin...")
   const pluginResult = await addPluginToOpenCodeConfig(VERSION)
   if (!pluginResult.success) {
     printError(`Failed: ${pluginResult.error}`)
@@ -338,7 +338,7 @@ async function runNonTuiInstall(args: InstallArgs): Promise<number> {
     step += 2
   }
 
-  printStep(step++, totalSteps, "Writing oh-my-opencode configuration...")
+  printStep(step++, totalSteps, "Writing omo-stable configuration...")
   const omoResult = writeOmoConfig(config)
   if (!omoResult.success) {
     printError(`Failed: ${omoResult.error}`)
@@ -427,7 +427,7 @@ export async function install(args: InstallArgs): Promise<number> {
   const config = await runTuiMode(detected)
   if (!config) return 1
 
-  s.start("Adding oh-my-opencode to OpenCode config")
+  s.start("Adding omo-stable to OpenCode config")
   const pluginResult = await addPluginToOpenCodeConfig(VERSION)
   if (!pluginResult.success) {
     s.stop(`Failed to add plugin: ${pluginResult.error}`)
@@ -456,7 +456,7 @@ export async function install(args: InstallArgs): Promise<number> {
     s.stop(`Provider config added to ${color.cyan(providerResult.configPath)}`)
   }
 
-  s.start("Writing oh-my-opencode configuration")
+  s.start("Writing omo-stable configuration")
   const omoResult = writeOmoConfig(config)
   if (!omoResult.success) {
     s.stop(`Failed to write config: ${omoResult.error}`)

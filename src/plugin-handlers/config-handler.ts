@@ -132,7 +132,7 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
       } else {
         const paths = getOpenCodeConfigPaths({ binary: "opencode", version: null })
         throw new Error(
-          'oh-my-opencode requires a default model.\n\n' +
+          'omo-stable requires a default model.\n\n' +
           `Add this to ${paths.configJsonc}:\n\n` +
           '  "model": "anthropic/claude-sonnet-4-5"\n\n' +
           '(Replace with your preferred provider/model)'
@@ -311,8 +311,8 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
             .filter(([key]) => {
               if (key === "build") return false;
               if (key === "plan" && replacePlan) return false;
-              // Filter out agents that oh-my-opencode provides to prevent
-              // OpenCode defaults from overwriting user config in oh-my-opencode.json
+              // Filter out agents that omo-stable provides to prevent
+              // OpenCode defaults from overwriting user config in omo-stable.json
               // See: https://github.com/code-yeongyu/oh-my-opencode/issues/472
               if (key in builtinAgents) return false;
               return true;

@@ -42,7 +42,7 @@ function loadAvailableModels(): { providers: string[]; modelCount: number; cache
   }
 }
 
-const PACKAGE_NAME = "oh-my-opencode"
+const PACKAGE_NAME = "omo-stable"
 const USER_CONFIG_DIR = join(homedir(), ".config", "opencode")
 const USER_CONFIG_BASE = join(USER_CONFIG_DIR, PACKAGE_NAME)
 const PROJECT_CONFIG_BASE = join(process.cwd(), ".opencode", PACKAGE_NAME)

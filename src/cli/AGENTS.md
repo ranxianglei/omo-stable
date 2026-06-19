@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-CLI entry: `bunx oh-my-opencode`. Interactive installer, doctor diagnostics. Commander.js + @clack/prompts.
+CLI entry: `bunx omo-stable`. Interactive installer, doctor diagnostics. Commander.js + @clack/prompts.
 
 ## STRUCTURE
 

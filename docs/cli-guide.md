@@ -1,17 +1,17 @@
-# Oh-My-OpenCode CLI Guide
+# Omo-Stable CLI Guide
 
-This document provides a comprehensive guide to using the Oh-My-OpenCode CLI tools.
+This document provides a comprehensive guide to using the Omo-Stable CLI tools.
 
 ## 1. Overview
 
-Oh-My-OpenCode provides CLI tools accessible via the `bunx oh-my-opencode` command. The CLI supports various features including plugin installation, environment diagnostics, and session execution.
+Omo-Stable provides CLI tools accessible via the `bunx omo-stable` command. The CLI supports various features including plugin installation, environment diagnostics, and session execution.
 
 ```bash
 # Basic execution (displays help)
-bunx oh-my-opencode
+bunx omo-stable
 
 # Or run with npx
-npx oh-my-opencode
+npx omo-stable
 ```
 
 ---
@@ -30,20 +30,20 @@ npx oh-my-opencode
 
 ## 3. `install` - Interactive Setup Wizard
 
-An interactive installation tool for initial Oh-My-OpenCode setup. Provides a beautiful TUI (Text User Interface) based on `@clack/prompts`.
+An interactive installation tool for initial Omo-Stable setup. Provides a beautiful TUI (Text User Interface) based on `@clack/prompts`.
 
 ### Usage
 
 ```bash
-bunx oh-my-opencode install
+bunx omo-stable install
 ```
 
 ### Installation Process
 
 1. **Provider Selection**: Choose your AI provider from Claude, ChatGPT, or Gemini.
 2. **API Key Input**: Enter the API key for your selected provider.
-3. **Configuration File Creation**: Generates `opencode.json` or `oh-my-opencode.json` files.
-4. **Plugin Registration**: Automatically registers the oh-my-opencode plugin in OpenCode settings.
+3. **Configuration File Creation**: Generates `opencode.json` or `omo-stable.json` files.
+4. **Plugin Registration**: Automatically registers the omo-stable plugin in OpenCode settings.
 
 ### Options
 
@@ -56,12 +56,12 @@ bunx oh-my-opencode install
 
 ## 4. `doctor` - Environment Diagnostics
 
-Diagnoses your environment to ensure Oh-My-OpenCode is functioning correctly. Performs 17+ health checks.
+Diagnoses your environment to ensure Omo-Stable is functioning correctly. Performs 17+ health checks.
 
 ### Usage
 
 ```bash
-bunx oh-my-opencode doctor
+bunx omo-stable doctor
 ```
 
 ### Diagnostic Categories
@@ -86,10 +86,10 @@ bunx oh-my-opencode doctor
 ### Example Output
 
 ```
-oh-my-opencode doctor
+omo-stable doctor
 
 ┌──────────────────────────────────────────────────┐
-│  Oh-My-OpenCode Doctor                           │
+│  Omo-Stable Doctor                           │
 └──────────────────────────────────────────────────┘
 
 Installation
@@ -97,7 +97,7 @@ Installation
   ✓ Plugin registered in opencode.json
 
 Configuration
-  ✓ oh-my-opencode.json is valid
+  ✓ omo-stable.json is valid
   ⚠ categories.visual-engineering: using default model
 
 Authentication
@@ -122,7 +122,7 @@ Executes OpenCode sessions and monitors task completion.
 ### Usage
 
 ```bash
-bunx oh-my-opencode run [prompt]
+bunx omo-stable run [prompt]
 ```
 
 ### Options
@@ -142,13 +142,13 @@ Manages Google Antigravity OAuth authentication. Required for using Gemini model
 
 ```bash
 # Login
-bunx oh-my-opencode auth login
+bunx omo-stable auth login
 
 # Logout
-bunx oh-my-opencode auth logout
+bunx omo-stable auth logout
 
 # Check current status
-bunx oh-my-opencode auth status
+bunx omo-stable auth status
 ```
 
 ---
@@ -157,8 +157,8 @@ bunx oh-my-opencode auth status
 
 The CLI searches for configuration files in the following locations (in priority order):
 
-1. **Project Level**: `.opencode/oh-my-opencode.json`
-2. **User Level**: `~/.config/opencode/oh-my-opencode.json`
+1. **Project Level**: `.opencode/omo-stable.json`
+2. **User Level**: `~/.config/opencode/omo-stable.json`
 
 ### JSONC Support
 
@@ -198,17 +198,17 @@ bun install -g opencode@latest
 
 ```bash
 # Reinstall plugin
-bunx oh-my-opencode install
+bunx omo-stable install
 ```
 
 ### Doctor Check Failures
 
 ```bash
 # Diagnose with detailed information
-bunx oh-my-opencode doctor --verbose
+bunx omo-stable doctor --verbose
 
 # Check specific category only
-bunx oh-my-opencode doctor --category authentication
+bunx omo-stable doctor --category authentication
 ```
 
 ---
@@ -219,10 +219,10 @@ Use the `--no-tui` option for CI/CD environments.
 
 ```bash
 # Run doctor in CI environment
-bunx oh-my-opencode doctor --no-tui --json
+bunx omo-stable doctor --no-tui --json
 
 # Save results to file
-bunx oh-my-opencode doctor --json > doctor-report.json
+bunx omo-stable doctor --json > doctor-report.json
 ```
 
 ---

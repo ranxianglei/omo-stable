@@ -3,7 +3,7 @@
 >
 > **ohmyopencode.com 与本项目无关。** 我们不运营或认可该网站。
 >
-> OhMyOpenCode 是**免费且开源的**。请**勿**在声称"官方"的第三方网站下载安装程序或输入付款信息。
+> OmoStable 是**免费且开源的**。请**勿**在声称"官方"的第三方网站下载安装程序或输入付款信息。
 >
 > 由于该冒充网站设有付费墙，我们**无法验证其分发的内容**。请将来自该网站的任何下载视为**潜在不安全**。
 >
@@ -16,34 +16,34 @@
 
 > [!TIP]
 >
-> [![Oh My OpenCode 3.0 正式发布！](./.github/assets/orchestrator-atlas.png?v=3)](https://github.com/code-yeongyu/oh-my-opencode/releases/tag/v3.0.0)
-> > **Oh My OpenCode 3.0 正式发布！使用 `oh-my-opencode@latest` 安装。**
+> [![Omo Stable 3.0 正式发布！](./.github/assets/orchestrator-atlas.png?v=3)](https://github.com/code-yeongyu/oh-my-opencode/releases/tag/v3.0.0)
+> > **Omo Stable 3.0 正式发布！使用 `omo-stable@latest` 安装。**
 >
 > 加入我们！
 >
-> | [<img alt="Discord 链接" src="https://img.shields.io/discord/1452487457085063218?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square" width="156px" />](https://discord.gg/PUwSMR9XNk) | 加入我们的 [Discord 社区](https://discord.gg/PUwSMR9XNk)，与贡献者和 `oh-my-opencode` 用户交流。 |
+> | [<img alt="Discord 链接" src="https://img.shields.io/discord/1452487457085063218?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square" width="156px" />](https://discord.gg/PUwSMR9XNk) | 加入我们的 [Discord 社区](https://discord.gg/PUwSMR9XNk)，与贡献者和 `omo-stable` 用户交流。 |
 > | :-----| :----- |
-> | [<img alt="X 链接" src="https://img.shields.io/badge/Follow-%40justsisyphus-00CED1?style=flat-square&logo=x&labelColor=black" width="156px" />](https://x.com/justsisyphus) | `oh-my-opencode` 的新闻和更新曾在我的 X 账号上发布。<br /> 由于账号被错误封禁，[@justsisyphus](https://x.com/justsisyphus) 现在代为发布更新。 |
+> | [<img alt="X 链接" src="https://img.shields.io/badge/Follow-%40justsisyphus-00CED1?style=flat-square&logo=x&labelColor=black" width="156px" />](https://x.com/justsisyphus) | `omo-stable` 的新闻和更新曾在我的 X 账号上发布。<br /> 由于账号被错误封禁，[@justsisyphus](https://x.com/justsisyphus) 现在代为发布更新。 |
 > | [<img alt="GitHub 关注" src="https://img.shields.io/github/followers/code-yeongyu?style=flat-square&logo=github&labelColor=black&color=24292f" width="156px" />](https://github.com/code-yeongyu) | 在 GitHub 上关注 [@code-yeongyu](https://github.com/code-yeongyu) 获取更多项目。 |
 
 <!-- <居中展示区域> -->
 
 <div align="center">
 
-[![Oh My OpenCode](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
+[![Omo Stable](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 [![预览](./.github/assets/omo.png)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 
 </div>
 
-> 这是开挂级别的编程——`oh-my-opencode` 实战效果。运行后台智能体，调用专业智能体如 oracle、librarian 和前端工程师。使用精心设计的 LSP/AST 工具、精选的 MCP，以及完整的 Claude Code 兼容层。
+> 这是开挂级别的编程——`omo-stable` 实战效果。运行后台智能体，调用专业智能体如 oracle、librarian 和前端工程师。使用精心设计的 LSP/AST 工具、精选的 MCP，以及完整的 Claude Code 兼容层。
 
 # Claude OAuth 访问通知
 
 ## TL;DR
 
-> Q. 我可以使用 oh-my-opencode 吗？
+> Q. 我可以使用 omo-stable 吗？
 
 可以。
 
@@ -55,7 +55,7 @@
 
 > 自2026年1月起，Anthropic 以违反服务条款为由限制了第三方 OAuth 访问。
 >
-> [**Anthropic 将本项目 oh-my-opencode 作为封锁 opencode 的理由。**](https://x.com/thdxr/status/2010149530486911014)
+> [**Anthropic 将本项目 omo-stable 作为封锁 opencode 的理由。**](https://x.com/thdxr/status/2010149530486911014)
 >
 > 事实上，社区中确实存在一些伪造 Claude Code OAuth 请求签名的插件。
 >
@@ -92,7 +92,7 @@
 
 > "我使用 Ohmyopencode 和 ralph loop 在一夜之间将一个 45k 行的 tauri 应用转换成了 SaaS Web 应用。从访谈提示开始，要求它对问题进行评分和建议。看着它工作非常精彩，今早醒来发现网站基本上已经可以运行了！" - [James Hargis](https://x.com/hargabyte/status/2007299688261882202)
 
-> "用了 oh-my-opencode，你再也不会回头了" — [d0t3ch](https://x.com/d0t3ch/status/2001685618200580503)
+> "用了 omo-stable，你再也不会回头了" — [d0t3ch](https://x.com/d0t3ch/status/2001685618200580503)
 
 > "我还没能准确表达出它为什么如此出色，但开发体验已经达到了一个完全不同的维度。" - [苔硯:こけすずり](https://x.com/kokesuzuri/status/2008532913961529372?s=20)
 
@@ -109,7 +109,7 @@
 
 ## 目录
 
-- [Oh My OpenCode](#oh-my-opencode)
+- [Omo Stable](#omo-stable)
   - [直接跳过阅读本文档](#直接跳过阅读本文档)
     - [这是智能体时代](#这是智能体时代)
     - [🪄 魔法词：`ultrawork`](#-魔法词ultrawork)
@@ -140,7 +140,7 @@
   - [受到以下专业人士的喜爱](#受到以下专业人士的喜爱)
   - [赞助商](#赞助商)
 
-# Oh My OpenCode
+# Omo Stable
 
 认识 Sisyphus：开箱即用的智能体，像你一样编码。
 
@@ -224,7 +224,7 @@
 
 需要查找什么？它会搜索官方文档、你的整个代码库历史和公共 GitHub 实现——不仅使用 grep，还使用内置的 LSP 工具和 AST-Grep。
 3. 在委派给 LLM 时不用担心上下文管理。我已经处理好了。
-    - OhMyOpenCode 积极利用多个智能体来减轻上下文负担。
+    - OmoStable 积极利用多个智能体来减轻上下文负担。
     - **你的智能体现在是开发团队负责人。你是 AI 经理。**
 4. 它不会停止，直到工作完成。
 5. 不想深入研究这个项目？没问题。只需输入 'ultrathink'。
@@ -238,7 +238,7 @@
 复制以下提示并粘贴到你的 LLM 智能体（Claude Code、AmpCode、Cursor 等）：
 
 ```
-按照以下说明安装和配置 oh-my-opencode：
+按照以下说明安装和配置 omo-stable：
 https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/master/docs/guide/installation.md
 ```
 
@@ -254,15 +254,15 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 
 ## 卸载
 
-要移除 oh-my-opencode：
+要移除 omo-stable：
 
 1. **从你的 OpenCode 配置中移除插件**
 
-   编辑 `~/.config/opencode/opencode.json`（或 `opencode.jsonc`）并从 `plugin` 数组中移除 `"oh-my-opencode"`：
+   编辑 `~/.config/opencode/opencode.json`（或 `opencode.jsonc`）并从 `plugin` 数组中移除 `"omo-stable"`：
 
    ```bash
    # 使用 jq
-   jq '.plugin = [.plugin[] | select(. != "oh-my-opencode")]' \
+   jq '.plugin = [.plugin[] | select(. != "omo-stable")]' \
        ~/.config/opencode/opencode.json > /tmp/oc.json && \
        mv /tmp/oc.json ~/.config/opencode/opencode.json
    ```
@@ -271,10 +271,10 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 
    ```bash
    # 移除用户配置
-   rm -f ~/.config/opencode/oh-my-opencode.json
+   rm -f ~/.config/opencode/omo-stable.json
 
    # 移除项目配置（如果存在）
-   rm -f .opencode/oh-my-opencode.json
+   rm -f .opencode/omo-stable.json
    ```
 
 3. **验证移除**
@@ -306,7 +306,7 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 详细信息请参阅 [Configuration Documentation](docs/configurations.md)。
 
 **概览：**
-- **配置文件位置**: `.opencode/oh-my-opencode.json` (项目级) 或 `~/.config/opencode/oh-my-opencode.json` (用户级)
+- **配置文件位置**: `.opencode/omo-stable.json` (项目级) 或 `~/.config/opencode/omo-stable.json` (用户级)
 - **JSONC 支持**: 支持注释和尾随逗号
 - **智能体**: 覆盖任何智能体的模型、温度、提示和权限
 - **内置技能**: `playwright` (浏览器自动化), `git-master` (原子提交)
@@ -323,13 +323,13 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 
 **想了解更多关于这个项目背后的理念吗？** 请阅读 [Ultrawork Manifesto](docs/ultrawork-manifesto.md)。
 
-安装 Oh My OpenCode。
+安装 Omo Stable。
 
 我纯粹为个人开发使用了价值 24,000 美元 token 的 LLM。
 尝试了每一个工具，把它们配置到极致。但始终是 OpenCode 胜出。
 
 我遇到的每个问题的答案都融入了这个插件。直接安装使用。
-如果 OpenCode 是 Debian/Arch，Oh My OpenCode 就是 Ubuntu/[Omarchy](https://omarchy.org/)。
+如果 OpenCode 是 Debian/Arch，Omo Stable 就是 Ubuntu/[Omarchy](https://omarchy.org/)。
 
 
 深受 [AmpCode](https://ampcode.com) 和 [Claude Code](https://code.claude.com/docs/overview) 的影响——我已经将它们的功能移植到这里，通常还有改进。我仍在构建。
@@ -362,7 +362,7 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
   - 其实，我会传播这个消息。让我们看看谁会赢。
 - 如果你使用 [1.0.132](https://github.com/sst/opencode/releases/tag/v1.0.132) 或更早版本，一个 OpenCode bug 可能会破坏配置。
   - [修复](https://github.com/sst/opencode/pull/5040)在 1.0.132 之后合并——使用更新的版本。
-    - 有趣的事实：那个 PR 是借助 OhMyOpenCode 的 Librarian、Explore 和 Oracle 设置发现并修复的。
+    - 有趣的事实：那个 PR 是借助 OmoStable 的 Librarian、Explore 和 Oracle 设置发现并修复的。
 
 ## 受到以下专业人士的喜爱
 

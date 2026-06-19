@@ -1,6 +1,6 @@
-# Oh My OpenCode Overview
+# Omo Stable Overview
 
-Learn about Oh My OpenCode, a plugin that transforms OpenCode into the best agent harness.
+Learn about Omo Stable, a plugin that transforms OpenCode into the best agent harness.
 
 ---
 
@@ -14,7 +14,7 @@ Learn about Oh My OpenCode, a plugin that transforms OpenCode into the best agen
 
 ---
 
-## What Oh My OpenCode Does for You
+## What Omo Stable Does for You
 
 - **Build features from descriptions**: Just tell the agent what you want. It makes a plan, writes the code, and ensures it works. Automatically. You don't have to care about the details.
 - **Debug and fix issues**: Describe a bug or paste an error. The agent analyzes your codebase, identifies the problem, and implements a fix.
@@ -90,13 +90,13 @@ The orchestrator is designed to execute work plans created by Prometheus. Using 
 
 ## Model Configuration
 
-Oh My OpenCode automatically configures models based on your available providers. You don't need to manually specify every model.
+Omo Stable automatically configures models based on your available providers. You don't need to manually specify every model.
 
 ### How Models Are Determined
 
 **1. At Installation Time (Interactive Installer)**
 
-When you run `bunx oh-my-opencode install`, the installer asks which providers you have:
+When you run `bunx omo-stable install`, the installer asks which providers you have:
 - Claude Pro/Max subscription?
 - OpenAI/ChatGPT Plus?
 - Google Gemini?
@@ -104,7 +104,7 @@ When you run `bunx oh-my-opencode install`, the installer asks which providers y
 - OpenCode Zen?
 - Z.ai Coding Plan?
 
-Based on your answers, it generates `~/.config/opencode/oh-my-opencode.json` with optimal model assignments for each agent and category.
+Based on your answers, it generates `~/.config/opencode/omo-stable.json` with optimal model assignments for each agent and category.
 
 **2. At Runtime (Fallback Chain)**
 
@@ -162,7 +162,7 @@ For detailed configuration options including per-agent settings, category custom
 ## Next Steps
 
 - [Understanding the Orchestration System](./understanding-orchestration-system.md) - Deep dive into Prometheus → Orchestrator → Junior workflow
-- [Ultrawork Manifesto](../ultrawork-manifesto.md) - Philosophy and principles behind Oh My OpenCode
+- [Ultrawork Manifesto](../ultrawork-manifesto.md) - Philosophy and principles behind Omo Stable
 - [Installation Guide](./installation.md) - Detailed installation instructions
 - [Configuration Guide](../configurations.md) - Customize agents, models, and behaviors
 - [Features Reference](../features.md) - Complete feature documentation

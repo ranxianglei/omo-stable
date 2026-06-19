@@ -1,4 +1,4 @@
-# Oh-My-OpenCode Configuration
+# Omo-Stable Configuration
 
 Highly opinionated, but adjustable to taste.
 
@@ -7,7 +7,7 @@ Highly opinionated, but adjustable to taste.
 **Most users don't need to configure anything manually.** Run the interactive installer:
 
 ```bash
-bunx oh-my-opencode install
+bunx omo-stable install
 ```
 
 It asks about your providers (Claude, OpenAI, Gemini, etc.) and generates optimal config automatically.
@@ -38,13 +38,13 @@ It asks about your providers (Claude, OpenAI, Gemini, etc.) and generates optima
 ## Config File Locations
 
 Config file locations (priority order):
-1. `.opencode/oh-my-opencode.json` (project)
+1. `.opencode/omo-stable.json` (project)
 2. User config (platform-specific):
 
 | Platform        | User Config Path                                                                                            |
 | --------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Windows**     | `~/.config/opencode/oh-my-opencode.json` (preferred) or `%APPDATA%\opencode\oh-my-opencode.json` (fallback) |
-| **macOS/Linux** | `~/.config/opencode/oh-my-opencode.json`                                                                    |
+| **Windows**     | `~/.config/opencode/omo-stable.json` (preferred) or `%APPDATA%\opencode\omo-stable.json` (fallback) |
+| **macOS/Linux** | `~/.config/opencode/omo-stable.json`                                                                    |
 
 Schema autocomplete supported:
 
@@ -56,12 +56,12 @@ Schema autocomplete supported:
 
 ## JSONC Support
 
-The `oh-my-opencode` configuration file supports JSONC (JSON with Comments):
+The `omo-stable` configuration file supports JSONC (JSON with Comments):
 - Line comments: `// comment`
 - Block comments: `/* comment */`
 - Trailing commas: `{ "key": "value", }`
 
-When both `oh-my-opencode.jsonc` and `oh-my-opencode.json` files exist, `.jsonc` takes priority.
+When both `omo-stable.jsonc` and `omo-stable.json` files exist, `.jsonc` takes priority.
 
 **Example with comments:**
 
@@ -145,7 +145,7 @@ Fine-grained control over what agents can do:
 | `doom_loop`          | Allow infinite loop detection override | `ask` / `allow` / `deny`                                                    |
 | `external_directory` | Access files outside project root      | `ask` / `allow` / `deny`                                                    |
 
-Or disable via `disabled_agents` in `~/.config/opencode/oh-my-opencode.json` or `.opencode/oh-my-opencode.json`:
+Or disable via `disabled_agents` in `~/.config/opencode/omo-stable.json` or `.opencode/omo-stable.json`:
 
 ```json
 {
@@ -157,12 +157,12 @@ Available agents: `oracle`, `librarian`, `explore`, `multimodal-looker`
 
 ## Built-in Skills
 
-Oh My OpenCode includes built-in skills that provide additional capabilities:
+Omo Stable includes built-in skills that provide additional capabilities:
 
 - **playwright**: Browser automation with Playwright MCP. Use for web scraping, testing, screenshots, and browser interactions.
 - **git-master**: Git expert for atomic commits, rebase/squash, and history search (blame, bisect, log -S). STRONGLY RECOMMENDED: Use with `delegate_task(category='quick', load_skills=['git-master'], ...)` to save context.
 
-Disable built-in skills via `disabled_skills` in `~/.config/opencode/oh-my-opencode.json` or `.opencode/oh-my-opencode.json`:
+Disable built-in skills via `disabled_skills` in `~/.config/opencode/omo-stable.json` or `.opencode/omo-stable.json`:
 
 ```json
 {
@@ -321,7 +321,7 @@ delegate_task(agent="oracle", prompt="Review this architecture")
 
 **Custom Categories:**
 
-Add custom categories in `oh-my-opencode.json`:
+Add custom categories in `omo-stable.json`:
 
 ```json
 {
@@ -343,14 +343,14 @@ Each category supports: `model`, `temperature`, `top_p`, `maxTokens`, `thinking`
 
 ## Model Resolution System
 
-At runtime, Oh My OpenCode uses a 3-step resolution process to determine which model to use for each agent and category. This happens dynamically based on your configuration and available models.
+At runtime, Omo Stable uses a 3-step resolution process to determine which model to use for each agent and category. This happens dynamically based on your configuration and available models.
 
 ### Overview
 
 **Problem**: Users have different provider configurations. The system needs to select the best available model for each task at runtime.
 
 **Solution**: A simple 3-step resolution flow:
-1. **Step 1: User Override** — If you specify a model in `oh-my-opencode.json`, use exactly that
+1. **Step 1: User Override** — If you specify a model in `omo-stable.json`, use exactly that
 2. **Step 2: Provider Fallback** — Try each provider in the requirement's priority order until one is available
 3. **Step 3: System Default** — Fall back to OpenCode's configured default model
 
@@ -363,7 +363,7 @@ At runtime, Oh My OpenCode uses a 3-step resolution process to determine which m
 │                                                                 │
 │   Step 1: USER OVERRIDE                                         │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │ User specified model in oh-my-opencode.json?            │   │
+│   │ User specified model in omo-stable.json?            │   │
 │   │         YES → Use exactly as specified                  │   │
 │   │         NO  → Continue to Step 2                        │   │
 │   └─────────────────────────────────────────────────────────┘   │
@@ -430,7 +430,7 @@ Categories follow the same resolution logic:
 Use the `doctor` command to see how models resolve with your current configuration:
 
 ```bash
-bunx oh-my-opencode doctor --verbose
+bunx omo-stable doctor --verbose
 ```
 
 The "Model Resolution" check shows:
@@ -441,7 +441,7 @@ The "Model Resolution" check shows:
 
 ### Manual Override
 
-Override any agent or category model in `oh-my-opencode.json`:
+Override any agent or category model in `omo-stable.json`:
 
 ```json
 {
@@ -465,7 +465,7 @@ When you specify a model override, it takes precedence (Step 1) and the provider
 
 ## Hooks
 
-Disable specific built-in hooks via `disabled_hooks` in `~/.config/opencode/oh-my-opencode.json` or `.opencode/oh-my-opencode.json`:
+Disable specific built-in hooks via `disabled_hooks` in `~/.config/opencode/omo-stable.json` or `.opencode/omo-stable.json`:
 
 ```json
 {
@@ -485,7 +485,7 @@ Exa, Context7 and grep.app MCP enabled by default.
 - **context7**: Fetches up-to-date official documentation for libraries
 - **grep_app**: Ultra-fast code search across millions of public GitHub repositories via [grep.app](https://grep.app)
 
-Don't want them? Disable via `disabled_mcps` in `~/.config/opencode/oh-my-opencode.json` or `.opencode/oh-my-opencode.json`:
+Don't want them? Disable via `disabled_mcps` in `~/.config/opencode/omo-stable.json` or `.opencode/omo-stable.json`:
 
 ```json
 {
@@ -496,10 +496,10 @@ Don't want them? Disable via `disabled_mcps` in `~/.config/opencode/oh-my-openco
 ## LSP
 
 OpenCode provides LSP tools for analysis.
-Oh My OpenCode adds refactoring tools (rename, code actions).
-All OpenCode LSP configs and custom settings (from opencode.json) are supported, plus additional Oh My OpenCode-specific settings.
+Omo Stable adds refactoring tools (rename, code actions).
+All OpenCode LSP configs and custom settings (from opencode.json) are supported, plus additional Omo Stable-specific settings.
 
-Add LSP servers via the `lsp` option in `~/.config/opencode/oh-my-opencode.json` or `.opencode/oh-my-opencode.json`:
+Add LSP servers via the `lsp` option in `~/.config/opencode/omo-stable.json` or `.opencode/omo-stable.json`:
 
 ```json
 {

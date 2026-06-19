@@ -1,4 +1,4 @@
-# Oh-My-OpenCode Orchestration Guide
+# Omo-Stable Orchestration Guide
 
 ## TL;DR - When to Use What
 
@@ -22,13 +22,13 @@ Is it a quick fix or simple task?
 
 ---
 
-This document provides a comprehensive guide to the orchestration system that implements Oh-My-OpenCode's core philosophy: **"Separation of Planning and Execution"**.
+This document provides a comprehensive guide to the orchestration system that implements Omo-Stable's core philosophy: **"Separation of Planning and Execution"**.
 
 ## 1. Overview
 
 Traditional AI agents often mix planning and execution, leading to context pollution, goal drift, and AI slop (low-quality code).
 
-Oh-My-OpenCode solves this by clearly separating two roles:
+Omo-Stable solves this by clearly separating two roles:
 
 1. **Prometheus (Planner)**: A pure strategist who never writes code. Establishes perfect plans through interviews and analysis.
 2. **Atlas (Executor)**: An orchestrator who executes plans. Delegates work to specialized agents and never stops until completion.
@@ -139,7 +139,7 @@ Executes the generated plan.
 
 ## 6. Configuration Guide
 
-You can control related features in `oh-my-opencode.json`.
+You can control related features in `omo-stable.json`.
 
 ```jsonc
 {

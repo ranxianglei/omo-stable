@@ -3,7 +3,7 @@
 >
 > **ohmyopencode.com is NOT affiliated with this project.** We do not operate or endorse that site.
 >
-> OhMyOpenCode is **free and open-source**. Do **not** download installers or enter payment details on third-party sites that claim to be "official."
+> OmoStable is **free and open-source**. Do **not** download installers or enter payment details on third-party sites that claim to be "official."
 >
 > Because the impersonation site is behind a paywall, we **cannot verify what it distributes**. Treat any downloads from it as **potentially unsafe**.
 >
@@ -16,34 +16,34 @@
 
 > [!TIP]
 >
-> [![Oh My OpenCode 3.0 is now stable!](./.github/assets/orchestrator-atlas.png?v=3)](https://github.com/code-yeongyu/oh-my-opencode/releases/tag/v3.0.0)
-> > **Oh My OpenCode 3.0 is now stable! Use `oh-my-opencode@latest` to install it.**
+> [![Omo Stable 3.0 is now stable!](./.github/assets/orchestrator-atlas.png?v=3)](https://github.com/code-yeongyu/oh-my-opencode/releases/tag/v3.0.0)
+> > **Omo Stable 3.0 is now stable! Use `omo-stable@latest` to install it.**
 >
 > Be with us!
 >
-> | [<img alt="Discord link" src="https://img.shields.io/discord/1452487457085063218?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square" width="156px" />](https://discord.gg/PUwSMR9XNk) | Join our [Discord community](https://discord.gg/PUwSMR9XNk) to connect with contributors and fellow `oh-my-opencode` users. |
+> | [<img alt="Discord link" src="https://img.shields.io/discord/1452487457085063218?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square" width="156px" />](https://discord.gg/PUwSMR9XNk) | Join our [Discord community](https://discord.gg/PUwSMR9XNk) to connect with contributors and fellow `omo-stable` users. |
 > | :-----| :----- |
-> | [<img alt="X link" src="https://img.shields.io/badge/Follow-%40justsisyphus-00CED1?style=flat-square&logo=x&labelColor=black" width="156px" />](https://x.com/justsisyphus) | News and updates for `oh-my-opencode` used to be posted on my X account. <br /> Since it was suspended mistakenly, [@justsisyphus](https://x.com/justsisyphus) now posts updates on my behalf. |
+> | [<img alt="X link" src="https://img.shields.io/badge/Follow-%40justsisyphus-00CED1?style=flat-square&logo=x&labelColor=black" width="156px" />](https://x.com/justsisyphus) | News and updates for `omo-stable` used to be posted on my X account. <br /> Since it was suspended mistakenly, [@justsisyphus](https://x.com/justsisyphus) now posts updates on my behalf. |
 > | [<img alt="GitHub Follow" src="https://img.shields.io/github/followers/code-yeongyu?style=flat-square&logo=github&labelColor=black&color=24292f" width="156px" />](https://github.com/code-yeongyu) | Follow [@code-yeongyu](https://github.com/code-yeongyu) on GitHub for more projects. |
 
 <!-- <CENTERED SECTION FOR GITHUB DISPLAY> -->
 
 <div align="center">
 
-[![Oh My OpenCode](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
+[![Omo Stable](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 [![Preview](./.github/assets/omo.png)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 
 </div>
 
-> This is coding on steroids—`oh-my-opencode` in action. Run background agents, call specialized agents like oracle, librarian, and frontend engineer. Use crafted LSP/AST tools, curated MCPs, and a full Claude Code compatibility layer.
+> This is coding on steroids—`omo-stable` in action. Run background agents, call specialized agents like oracle, librarian, and frontend engineer. Use crafted LSP/AST tools, curated MCPs, and a full Claude Code compatibility layer.
 
 # Claude OAuth Access Notice
 
 ## TL;DR
 
-> Q. Can I use oh-my-opencode?
+> Q. Can I use omo-stable?
 
 Yes.
 
@@ -55,7 +55,7 @@ Yes, technically possible. But I cannot recommend using it.
 
 > As of January 2026, Anthropic has restricted third-party OAuth access citing ToS violations.
 >
-> [**Anthropic has cited this project, oh-my-opencode as justification for blocking opencode.**](https://x.com/thdxr/status/2010149530486911014)
+> [**Anthropic has cited this project, omo-stable as justification for blocking opencode.**](https://x.com/thdxr/status/2010149530486911014)
 >
 > Indeed, some plugins that spoof Claude Code's oauth request signatures exist in the community.
 >
@@ -91,7 +91,7 @@ Yes, technically possible. But I cannot recommend using it.
 
 > "I converted a 45k line tauri app into a SaaS web app overnight using Ohmyopencode and ralph loop. Started with interview me prompt, asked it for ratings and recommendations on the questions. It was amazing to watch it work and to wake up this morning to a mostly working website!" - [James Hargis](https://x.com/hargabyte/status/2007299688261882202)
 
-> "use oh-my-opencode, you will never go back" — [d0t3ch](https://x.com/d0t3ch/status/2001685618200580503)
+> "use omo-stable, you will never go back" — [d0t3ch](https://x.com/d0t3ch/status/2001685618200580503)
 
 > "I haven't really been able to articulate exactly what makes it so great yet, but the development experience has reached a completely different dimension." - [
 苔硯:こけすずり](https://x.com/kokesuzuri/status/2008532913961529372?s=20)
@@ -109,7 +109,7 @@ Yes, technically possible. But I cannot recommend using it.
 
 ## Contents
 
-- [Oh My OpenCode](#oh-my-opencode)
+- [Omo Stable](#omo-stable)
   - [Just Skip Reading This Readme](#just-skip-reading-this-readme)
     - [It's the Age of Agents](#its-the-age-of-agents)
     - [🪄 The Magic Word: `ultrawork`](#-the-magic-word-ultrawork)
@@ -139,7 +139,7 @@ Yes, technically possible. But I cannot recommend using it.
   - [Warnings](#warnings)
   - [Loved by professionals at](#loved-by-professionals-at)
 
-# Oh My OpenCode
+# Omo Stable
 
 [Claude Code](https://www.claude.com/product/claude-code) is great.
 But if you're a hacker, you'll fall head over heels for [OpenCode](https://github.com/sst/opencode).
@@ -227,7 +227,7 @@ Just by installing this, you make your agents to work like:
 
 Need to look something up? It scours official docs, your entire codebase history, and public GitHub implementations—using not just grep but built-in LSP tools and AST-Grep.
 3. Stop worrying about context management when delegating to LLMs. I've got it covered.
-    - OhMyOpenCode aggressively leverages multiple agents to lighten the context load.
+    - OmoStable aggressively leverages multiple agents to lighten the context load.
     - **Your agent is now the dev team lead. You're the AI Manager.**
 4. It doesn't stop until the job is done.
 5. Don't want to dive deep into this project? No problem. Just type 'ultrathink'.
@@ -241,7 +241,7 @@ If you don't want all this, as mentioned, you can just pick and choose specific 
 Copy and paste this prompt to your LLM agent (Claude Code, AmpCode, Cursor, etc.):
 
 ```
-Install and configure oh-my-opencode by following the instructions here:
+Install and configure omo-stable by following the instructions here:
 https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/master/docs/guide/installation.md
 ```
 
@@ -257,15 +257,15 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 
 ## Uninstallation
 
-To remove oh-my-opencode:
+To remove omo-stable:
 
 1. **Remove the plugin from your OpenCode config**
 
-   Edit `~/.config/opencode/opencode.json` (or `opencode.jsonc`) and remove `"oh-my-opencode"` from the `plugin` array:
+   Edit `~/.config/opencode/opencode.json` (or `opencode.jsonc`) and remove `"omo-stable"` from the `plugin` array:
 
    ```bash
    # Using jq
-   jq '.plugin = [.plugin[] | select(. != "oh-my-opencode")]' \
+   jq '.plugin = [.plugin[] | select(. != "omo-stable")]' \
        ~/.config/opencode/opencode.json > /tmp/oc.json && \
        mv /tmp/oc.json ~/.config/opencode/opencode.json
    ```
@@ -274,10 +274,10 @@ To remove oh-my-opencode:
 
    ```bash
    # Remove user config
-   rm -f ~/.config/opencode/oh-my-opencode.json
+   rm -f ~/.config/opencode/omo-stable.json
 
    # Remove project config (if exists)
-   rm -f .opencode/oh-my-opencode.json
+   rm -f .opencode/omo-stable.json
    ```
 
 3. **Verify removal**
@@ -308,7 +308,7 @@ Highly opinionated, but adjustable to taste.
 See the full [Configuration Documentation](docs/configurations.md) for detailed information.
 
 **Quick Overview:**
-- **Config Locations**: `.opencode/oh-my-opencode.json` (project) or `~/.config/opencode/oh-my-opencode.json` (user)
+- **Config Locations**: `.opencode/omo-stable.json` (project) or `~/.config/opencode/omo-stable.json` (user)
 - **JSONC Support**: Comments and trailing commas supported
 - **Agents**: Override models, temperatures, prompts, and permissions for any agent
 - **Built-in Skills**: `playwright` (browser automation), `git-master` (atomic commits)
@@ -325,13 +325,13 @@ See the full [Configuration Documentation](docs/configurations.md) for detailed 
 
 **Curious about the philosophy behind this project?** Read the [Ultrawork Manifesto](docs/ultrawork-manifesto.md).
 
-Install Oh My OpenCode.
+Install Omo Stable.
 
 I've used LLMs worth $24,000 tokens purely for personal development.
 Tried every tool out there, configured them to death. OpenCode won.
 
 The answers to every problem I hit are baked into this plugin. Just install and go.
-If OpenCode is Debian/Arch, Oh My OpenCode is Ubuntu/[Omarchy](https://omarchy.org/).
+If OpenCode is Debian/Arch, Omo Stable is Ubuntu/[Omarchy](https://omarchy.org/).
 
 
 Heavily influenced by [AmpCode](https://ampcode.com) and [Claude Code](https://code.claude.com/docs/overview)—I've ported their features here, often improved. And I'm still building.
@@ -364,7 +364,7 @@ I have no affiliation with any project or model mentioned here. This is purely p
   - Actually, I'll spread the word. Let's see who wins.
 - If you're on [1.0.132](https://github.com/sst/opencode/releases/tag/v1.0.132) or older, an OpenCode bug may break config.
   - [The fix](https://github.com/sst/opencode/pull/5040) was merged after 1.0.132—use a newer version.
-    - Fun fact: That PR was discovered and fixed thanks to OhMyOpenCode's Librarian, Explore, and Oracle setup.
+    - Fun fact: That PR was discovered and fixed thanks to OmoStable's Librarian, Explore, and Oracle setup.
 
 ## Loved by professionals at
 

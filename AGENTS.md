@@ -11,7 +11,7 @@ OpenCode plugin: multi-model agent orchestration (Claude Opus 4.5, GPT-5.2, Gemi
 ## STRUCTURE
 
 ```
-oh-my-opencode/
+omo-stable/
 ├── src/
 │   ├── agents/        # 10 AI agents - see src/agents/AGENTS.md
 │   ├── hooks/         # 31 lifecycle hooks - see src/hooks/AGENTS.md

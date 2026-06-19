@@ -32,7 +32,7 @@ const PLATFORM_MAP: Record<string, PlatformInfo> = {
 }
 
 /**
- * Get the cache directory for oh-my-opencode binaries.
+ * Get the cache directory for omo-stable binaries.
  * On Windows: Uses %LOCALAPPDATA% or %APPDATA% (Windows conventions)
  * On Unix: Follows XDG Base Directory Specification
  */
@@ -40,12 +40,12 @@ export function getCacheDir(): string {
   if (process.platform === "win32") {
     const localAppData = process.env.LOCALAPPDATA || process.env.APPDATA
     const base = localAppData || join(homedir(), "AppData", "Local")
-    return join(base, "oh-my-opencode", "bin")
+    return join(base, "omo-stable", "bin")
   }
 
   const xdgCache = process.env.XDG_CACHE_HOME
   const base = xdgCache || join(homedir(), ".cache")
-  return join(base, "oh-my-opencode", "bin")
+  return join(base, "omo-stable", "bin")
 }
 
 /**
@@ -127,7 +127,7 @@ export async function downloadCommentChecker(): Promise<string | null> {
   const downloadUrl = `https://github.com/${REPO}/releases/download/v${version}/${assetName}`
   
   debugLog(`Downloading from: ${downloadUrl}`)
-  console.log(`[oh-my-opencode] Downloading comment-checker binary...`)
+  console.log(`[omo-stable] Downloading comment-checker binary...`)
   
   try {
     // Ensure cache directory exists
@@ -166,14 +166,14 @@ export async function downloadCommentChecker(): Promise<string | null> {
     }
     
     debugLog(`Successfully downloaded binary to: ${binaryPath}`)
-    console.log(`[oh-my-opencode] comment-checker binary ready.`)
+    console.log(`[omo-stable] comment-checker binary ready.`)
     
     return binaryPath
     
   } catch (err) {
     debugLog(`Failed to download: ${err}`)
-    console.error(`[oh-my-opencode] Failed to download comment-checker: ${err instanceof Error ? err.message : err}`)
-    console.error(`[oh-my-opencode] Comment checking disabled.`)
+    console.error(`[omo-stable] Failed to download comment-checker: ${err instanceof Error ? err.message : err}`)
+    console.error(`[omo-stable] Comment checking disabled.`)
     return null
   }
 }

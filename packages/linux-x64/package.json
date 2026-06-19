@@ -1,7 +1,7 @@
 {
-  "name": "oh-my-opencode-linux-x64",
+  "name": "omo-stable-linux-x64",
   "version": "3.0.1",
-  "description": "Platform-specific binary for oh-my-opencode (linux-x64)",
+  "description": "Platform-specific binary for omo-stable (linux-x64)",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -20,6 +20,6 @@
     "bin"
   ],
   "bin": {
-    "oh-my-opencode": "./bin/oh-my-opencode"
+    "omo-stable": "./bin/omo-stable"
   }
 }

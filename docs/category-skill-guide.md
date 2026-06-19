@@ -1,6 +1,6 @@
 # Category & Skill System Guide
 
-This document provides a comprehensive guide to the **Category** and **Skill** systems, which form the extensibility core of Oh-My-OpenCode.
+This document provides a comprehensive guide to the **Category** and **Skill** systems, which form the extensibility core of Omo-Stable.
 
 ## 1. Overview
 
@@ -149,9 +149,9 @@ When delegating, **clear and specific** prompts are essential. Include these 7 e
 
 ---
 
-## 6. Configuration Guide (oh-my-opencode.json)
+## 6. Configuration Guide (omo-stable.json)
 
-You can fine-tune categories in `oh-my-opencode.json`.
+You can fine-tune categories in `omo-stable.json`.
 
 ### Category Configuration Schema (CategoryConfig)
 

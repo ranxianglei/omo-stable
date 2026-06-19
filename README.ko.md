@@ -3,7 +3,7 @@
 >
 > **ohmyopencode.com은 이 프로젝트와 제휴 관계가 아닙니다.** 우리는 해당 사이트를 운영하거나 지지하지 않습니다.
 >
-> OhMyOpenCode는 **무료 오픈 소스**입니다. "공식"을 표방하는 제3자 사이트에서 설치 프로그램을 다운로드하거나 결제 정보를 입력하지 마십시오.
+> OmoStable는 **무료 오픈 소스**입니다. "공식"을 표방하는 제3자 사이트에서 설치 프로그램을 다운로드하거나 결제 정보를 입력하지 마십시오.
 >
 > 사칭 사이트는 유료 벽 뒤에 있어 **배포하는 내용을 확인할 수 없습니다.** 해당 사이트의 다운로드는 **잠재적으로 위험한 것으로 간주**하세요.
 >
@@ -16,34 +16,34 @@
 >
 > [!TIP]
 >
-> [![Oh My OpenCode 3.0이 정식 출시되었습니다!](./.github/assets/orchestrator-atlas.png?v=3)](https://github.com/code-yeongyu/oh-my-opencode/releases/tag/v3.0.0)
-> > **Oh My OpenCode 3.0이 정식 출시되었습니다! `oh-my-opencode@latest`를 사용하여 설치하세요.**
+> [![Omo Stable 3.0이 정식 출시되었습니다!](./.github/assets/orchestrator-atlas.png?v=3)](https://github.com/code-yeongyu/oh-my-opencode/releases/tag/v3.0.0)
+> > **Omo Stable 3.0이 정식 출시되었습니다! `omo-stable@latest`를 사용하여 설치하세요.**
 >
 > 함께해요!
 >
-> | [<img alt="Discord link" src="https://img.shields.io/discord/1452487457085063218?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square" width="156px" />](https://discord.gg/PUwSMR9XNk) | 기여자와 동료 `oh-my-opencode` 사용자와 연결하려면 [Discord 커뮤니티](https://discord.gg/PUwSMR9XNk)에 가입하세요. |
+> | [<img alt="Discord link" src="https://img.shields.io/discord/1452487457085063218?color=5865F2&label=discord&labelColor=black&logo=discord&logoColor=white&style=flat-square" width="156px" />](https://discord.gg/PUwSMR9XNk) | 기여자와 동료 `omo-stable` 사용자와 연결하려면 [Discord 커뮤니티](https://discord.gg/PUwSMR9XNk)에 가입하세요. |
 > | :-----| :----- |
-> | [<img alt="X link" src="https://img.shields.io/badge/Follow-%40justsisyphus-00CED1?style=flat-square&logo=x&labelColor=black" width="156px" />](https://x.com/justsisyphus) | `oh-my-opencode`에 대한 뉴스와 업데이트가 제 X 계정에 게시되었습니다. <br /> 실수로 정지된 이후, [@justsisyphus](https://x.com/justsisyphus)가 제 대신 업데이트를 게시합니다. |
+> | [<img alt="X link" src="https://img.shields.io/badge/Follow-%40justsisyphus-00CED1?style=flat-square&logo=x&labelColor=black" width="156px" />](https://x.com/justsisyphus) | `omo-stable`에 대한 뉴스와 업데이트가 제 X 계정에 게시되었습니다. <br /> 실수로 정지된 이후, [@justsisyphus](https://x.com/justsisyphus)가 제 대신 업데이트를 게시합니다. |
 > | [<img alt="GitHub Follow" src="https://img.shields.io/github/followers/code-yeongyu?style=flat-square&logo=github&labelColor=black&color=24292f" width="156px" />](https://github.com/code-yeongyu) | 더 많은 프로젝트를 위해 GitHub에서 [@code-yeongyu](https://github.com/code-yeongyu)를 팔로우하세요. |
 
 <!-- <CENTERED SECTION FOR GITHUB DISPLAY> -->
 
 <div align="center">
 
-[![Oh My OpenCode](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
+[![Omo Stable](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 [![Preview](./.github/assets/omo.png)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 
 </div>
 
-> 이것은 코딩을 스테로이드로 만드는 것 — 실제로 작동하는 `oh-my-opencode`입니다. 백그라운드 에이전트 실행, 오라클, 라이브러리언, 프론트엔드 엔지니어와 같은 전문 에이전트 호출. 정교하게 제작된 LSP/AST 도구, 큐레이팅된 MCP, 완전한 Claude Code 호환 계층 사용.
+> 이것은 코딩을 스테로이드로 만드는 것 — 실제로 작동하는 `omo-stable`입니다. 백그라운드 에이전트 실행, 오라클, 라이브러리언, 프론트엔드 엔지니어와 같은 전문 에이전트 호출. 정교하게 제작된 LSP/AST 도구, 큐레이팅된 MCP, 완전한 Claude Code 호환 계층 사용.
 
 # Claude OAuth 액세스 공지
 
 ## TL;DR
 
-> Q. oh-my-opencode를 사용할 수 있나요?
+> Q. omo-stable를 사용할 수 있나요?
 
 네.
 
@@ -55,7 +55,7 @@
 
 > 2026년 1월 현재, Anthropic은 ToS 위반을 이유로 제3자 OAuth 액세스를 제한했습니다.
 >
-> [**Anthropic은 이 프로젝트 oh-my-opencode를 opencode 차단의 정당화로 인용했습니다.**](https://x.com/thdxr/status/2010149530486911014)
+> [**Anthropic은 이 프로젝트 omo-stable를 opencode 차단의 정당화로 인용했습니다.**](https://x.com/thdxr/status/2010149530486911014)
 >
 > 실제로 커뮤니티에는 Claude Code의 oauth 요청 서명을 위조하는 일부 플러그인이 존재합니다.
 >
@@ -92,7 +92,7 @@
 
 > "Ohmyopencode와 ralph 루프를 사용하여 하룻밤 사이에 45,000줄의 tauri 앱을 SaaS 웹 앱으로 변환했습니다. 인터뷰 프롬프트로 시작하여 질문에 대한 등급과 추천을 물어봤습니다. 그것이 작동하는 모습을 보는 것은 놀라웠고, 이 아침에 기본적으로 작동하는 웹사이트로 깨어나는 것이었습니다!" - [James Hargis](https://x.com/hargabyte/status/2007299688261882202)
 
-> "oh-my-opencode를 사용하세요, 다시는 돌아갈 수 없을 것입니다" — [d0t3ch](https://x.com/d0t3ch/status/2001685618200580503)
+> "omo-stable를 사용하세요, 다시는 돌아갈 수 없을 것입니다" — [d0t3ch](https://x.com/d0t3ch/status/2001685618200580503)
 
 > "아직 왜 그렇게 훌륭한지 정확히 설명할 수 없지만, 개발 경험이 완전히 다른 차원에 도달했습니다." - [
 苔硯:こけすずり](https://x.com/kokesuzuri/status/2008532913961529372?s=20)
@@ -110,7 +110,7 @@
 
 ## 목차
 
-- [Oh My OpenCode](#oh-my-opencode)
+- [Omo Stable](#omo-stable)
   - [이 README를 읽지 않고 건너뛰세요](#이-readme를-읽지-않고-건너뛰세요)
     - [에이전트의 시대입니다](#에이전트의-시대입니다)
     - [🪄 마법의 단어: `ultrawork`](#-마법의-단어-ultrawork)
@@ -140,7 +140,7 @@
   - [경고](#경고)
   - [다음 기업 전문가들이 사랑합니다](#다음-기업-전문가들이-사랑합니다)
 
-# Oh My OpenCode
+# Omo Stable
 
 [Claude Code](https://www.claude.com/product/claude-code)는 훌륭합니다.
 하지만 해커라면 [OpenCode](https://github.com/sst/opencode)에 반하게 될 것입니다.
@@ -228,7 +228,7 @@ Hey please read this readme and tell me why it is different from other agent har
 
 무언가를 찾아야 하나요? 공식 문서, 전체 코드베이스 기록, 공개 GitHub 구현을 검색합니다 — grep뿐만 아니라 내장 LSP 도구와 AST-Grep을 사용합니다.
 3. LLM에 위임할 때 컨텍스트 관리에 대해 걱정하지 마세요. 내가 다 처리했습니다.
-    - OhMyOpenCode는 컨텍스트 부하를 줄이기 위해 공격적으로 여러 에이전트를 활용합니다.
+    - OmoStable는 컨텍스트 부하를 줄이기 위해 공격적으로 여러 에이전트를 활용합니다.
     - **이제 귀하의 에이전트는 개발 팀 리드입니다. 당신은 AI 매니저입니다.**
 4. 작업이 완료될 때까지 멈추지 않습니다.
 5. 이 프로젝트에 깊이 파고들고 싶지 않나요? 문제 없습니다. 'ultrathink'를 입력하세요.
@@ -242,7 +242,7 @@ Hey please read this readme and tell me why it is different from other agent har
 이 프롬프트를 LLM 에이전트(Claude Code, AmpCode, Cursor 등)에 복사하여 붙여넣으세요:
 
 ```
-Install and configure oh-my-opencode by following the instructions here:
+Install and configure omo-stable by following the instructions here:
 https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/master/docs/guide/installation.md
 ```
 
@@ -258,15 +258,15 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 
 ## 제거
 
-oh-my-opencode를 제거하려면:
+omo-stable를 제거하려면:
 
 1. **OpenCode 구성에서 플러그인 제거**
 
-   `~/.config/opencode/opencode.json`(또는 `opencode.jsonc`)을 편집하고 `plugin` 배열에서 `"oh-my-opencode"`를 제거하세요:
+   `~/.config/opencode/opencode.json`(또는 `opencode.jsonc`)을 편집하고 `plugin` 배열에서 `"omo-stable"`를 제거하세요:
 
    ```bash
    # Using jq
-   jq '.plugin = [.plugin[] | select(. != "oh-my-opencode")]' \
+   jq '.plugin = [.plugin[] | select(. != "omo-stable")]' \
        ~/.config/opencode/opencode.json > /tmp/oc.json && \
        mv /tmp/oc.json ~/.config/opencode/opencode.json
    ```
@@ -275,10 +275,10 @@ oh-my-opencode를 제거하려면:
 
    ```bash
    # Remove user config
-   rm -f ~/.config/opencode/oh-my-opencode.json
+   rm -f ~/.config/opencode/omo-stable.json
 
    # Remove project config (if exists)
-   rm -f .opencode/oh-my-opencode.json
+   rm -f .opencode/omo-stable.json
    ```
 
 3. **제거 확인**
@@ -309,7 +309,7 @@ oh-my-opencode를 제거하려면:
 자세한 내용은 전체 [구성 문서](docs/configurations.md)를 참조하세요.
 
 **빠른 개요:**
-- **구성 위치**: `.opencode/oh-my-opencode.json`(프로젝트) 또는 `~/.config/opencode/oh-my-opencode.json`(사용자)
+- **구성 위치**: `.opencode/omo-stable.json`(프로젝트) 또는 `~/.config/opencode/omo-stable.json`(사용자)
 - **JSONC 지원**: 주석 및 후행 쉼표 지원
 - **에이전트**: 모든 에이전트의 모델, 온도, 프롬프트 및 권한 재정의
 - **내장 스킬**: `playwright`(브라우저 자동화), `git-master`(원자적 커밋)
@@ -326,13 +326,13 @@ oh-my-opencode를 제거하려면:
 
 **이 프로젝트의 철학에 궁금한가요?** [Ultrawork 선언문](docs/ultrawork-manifesto.md)을 읽어보세요.
 
-Oh My OpenCode를 설치하세요.
+Omo Stable를 설치하세요.
 
 순수하게 개인용으로 $24,000 토큰 가치의 LLM을 사용했습니다.
 모든 도구를 시도하고 구성했습니다. OpenCode가 승리했습니다.
 
 내가 겪은 모든 문제에 대한 답변이 이 플러그인에 구워져 있습니다. 설치하고 바로 가세요.
-OpenCode가 Debian/Arch라면 Oh My OpenCode는 Ubuntu/[Omarchy](https://omarchy.org/)입니다.
+OpenCode가 Debian/Arch라면 Omo Stable는 Ubuntu/[Omarchy](https://omarchy.org/)입니다.
 
 
 [AmpCode](https://ampcode.com)와 [Claude Code](https://code.claude.com/docs/overview)에 큰 영향을 받았습니다 — 여기에 그들의 기능을 포팅했고, 종종 개선했습니다. 그리고 여전히 구축 중입니다.
@@ -365,7 +365,7 @@ OpenCode가 Debian/Arch라면 Oh My OpenCode는 Ubuntu/[Omarchy](https://omarchy
   - 실제로, 소문을 퍼뜨리겠습니다. 누가 이기는지 봅시다.
 - [1.0.132](https://github.com/sst/opencode/releases/tag/v1.0.132) 이전 버전을 사용 중인 경우 OpenCode 버그로 인해 구성이 손상될 수 있습니다.
   - [수정 사항](https://github.com/sst/opencode/pull/5040)은 1.0.132 이후에 병합되었습니다 — 더 새로운 버전을 사용하세요.
-    - 재미있는 사실: 해당 PR은 OhMyOpenCode의 Librarian, Explore 및 Oracle 설정 덕분에 발견되고 수정되었습니다.
+    - 재미있는 사실: 해당 PR은 OmoStable의 Librarian, Explore 및 Oracle 설정 덕분에 발견되고 수정되었습니다.
 
 ## 다음 기업 전문가들이 사랑합니다
 

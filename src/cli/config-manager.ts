@@ -131,7 +131,7 @@ export async function fetchNpmDistTags(packageName: string): Promise<NpmDistTags
   }
 }
 
-const PACKAGE_NAME = "oh-my-opencode"
+const PACKAGE_NAME = "omo-stable"
 
 const PRIORITIZED_TAGS = ["latest", "beta", "next"] as const
 
@@ -354,7 +354,7 @@ export function writeOmoConfig(installConfig: InstallConfig): ConfigMergeResult 
 
     return { success: true, configPath: omoConfigPath }
   } catch (err) {
-    return { success: false, configPath: omoConfigPath, error: formatErrorWithSuggestion(err, "write oh-my-opencode config") }
+    return { success: false, configPath: omoConfigPath, error: formatErrorWithSuggestion(err, "write omo-stable config") }
   }
 }
 
@@ -646,7 +646,7 @@ export function detectCurrentConfig(): DetectedConfig {
 
   const openCodeConfig = parseResult.config
   const plugins = openCodeConfig.plugin ?? []
-  result.isInstalled = plugins.some((p) => p.startsWith("oh-my-opencode"))
+  result.isInstalled = plugins.some((p) => p.startsWith("omo-stable"))
 
   if (!result.isInstalled) {
     return result

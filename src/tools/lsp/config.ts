@@ -36,8 +36,8 @@ function getConfigPaths(): { project: string; user: string; opencode: string } {
   const cwd = process.cwd()
   const configDir = getOpenCodeConfigDir({ binary: "opencode" })
   return {
-    project: join(cwd, ".opencode", "oh-my-opencode.json"),
-    user: join(configDir, "oh-my-opencode.json"),
+    project: join(cwd, ".opencode", "omo-stable.json"),
+    user: join(configDir, "omo-stable.json"),
     opencode: join(configDir, "opencode.json"),
   }
 }
@@ -217,7 +217,7 @@ export function isServerInstalled(command: string[]): boolean {
     }
   }
 
-  // Runtime wrappers (bun/node) are always available in oh-my-opencode context
+  // Runtime wrappers (bun/node) are always available in omo-stable context
   if (cmd === "bun" || cmd === "node") {
     return true
   }

@@ -1,10 +1,10 @@
-# Oh-My-OpenCode Features
+# Omo-Stable Features
 
 ---
 
 ## Agents: Your AI Team
 
-Oh-My-OpenCode provides 10 specialized AI agents. Each has distinct expertise, optimized models, and tool permissions.
+Omo-Stable provides 10 specialized AI agents. Each has distinct expertise, optimized models, and tool permissions.
 
 ### Core Agents
 
@@ -62,7 +62,7 @@ delegate_task(agent="explore", background=true, prompt="Find auth implementation
 background_output(task_id="bg_abc123")
 ```
 
-Customize agent models, prompts, and permissions in `oh-my-opencode.json`. See [Configuration](configurations.md#agents).
+Customize agent models, prompts, and permissions in `omo-stable.json`. See [Configuration](configurations.md#agents).
 
 ---
 

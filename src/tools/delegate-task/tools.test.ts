@@ -117,7 +117,7 @@ describe("sisyphus-task", () => {
       )
       
       // #then returns descriptive error message
-      expect(result).toContain("oh-my-opencode requires a default model")
+      expect(result).toContain("omo-stable requires a default model")
     })
   })
 

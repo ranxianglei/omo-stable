@@ -492,7 +492,7 @@ To continue this session: session_id="${args.session_id}"`
          if (!systemDefaultModel) {
            const paths = getOpenCodeConfigPaths({ binary: "opencode", version: null })
            return (
-             'oh-my-opencode requires a default model.\n\n' +
+              'omo-stable requires a default model.\n\n' +
              `Add this to ${paths.configJsonc}:\n\n` +
              '  "model": "anthropic/claude-sonnet-4-5"\n\n' +
              '(Replace with your preferred provider/model)'

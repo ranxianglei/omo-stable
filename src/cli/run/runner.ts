@@ -54,7 +54,7 @@ export async function run(options: RunOptions): Promise<number> {
 
       for (let attempt = 1; attempt <= SESSION_CREATE_MAX_RETRIES; attempt++) {
         const sessionRes = await client.session.create({
-          body: { title: "oh-my-opencode run" },
+          body: { title: "omo-stable run" },
         })
 
         if (sessionRes.error) {

@@ -1,6 +1,6 @@
 # Understanding the Orchestration System
 
-Oh My OpenCode's orchestration system transforms a simple AI agent into a coordinated development team. This document explains how the Prometheus → Atlas → Junior workflow creates high-quality, reliable code output.
+Omo Stable's orchestration system transforms a simple AI agent into a coordinated development team. This document explains how the Prometheus → Atlas → Junior workflow creates high-quality, reliable code output.
 
 ---
 
@@ -306,7 +306,7 @@ delegate_task(category="quick", prompt="...")          // "Just get it done fast
 You can define your own categories:
 
 ```json
-// .opencode/oh-my-opencode.json
+// .opencode/omo-stable.json
 {
   "categories": {
     "unity-game-dev": {
