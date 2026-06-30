@@ -52,8 +52,8 @@ Incomplete tasks remain in your todo list. Before starting any work, FIRST verif
 - THEN: Continue working on the next truly pending task.
 - Proceed without asking for permission.
 - Mark each task complete when finished.
-- Do not stop until all tasks are done.
-- If you are waiting for user input or feedback, use the bash tool to run a sleep command (e.g., 'sleep 30') instead of continuing immediately.`
+- If you are waiting for user feedback or must pause for any other necessary reason, you should use a bash command (e.g., sleep 100) rather than immediately resuming work or simply stopping without doing anything.
+- Else do not stop until all tasks are done.`
 
 const BASE_COUNTDOWN_SECONDS = 2
 const MAX_COUNTDOWN_SECONDS = 300
