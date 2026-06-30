@@ -42,6 +42,7 @@ interface SessionState {
   consecutiveEmptyResponses?: number
   consecutiveNudges?: number
   lastNudgeAt?: number
+  lastSelfInjectionAt?: number
 }
 
 const CONTINUATION_PROMPT = `${createSystemDirective(SystemDirectiveTypes.TODO_CONTINUATION)}
@@ -53,7 +54,7 @@ Incomplete tasks remain in your todo list. Before starting any work, FIRST verif
 - Proceed without asking for permission.
 - Mark each task complete when finished.
 - Do not stop until all tasks are done.
-- If you are waiting for user input or feedback, use the bash tool to run a sleep command (e.g., 'sleep 30') instead of continuing immediately.`
+- If you are genuinely blocked and need user input to proceed, state your question clearly and stop. Do not loop or retry.`
 
 const BASE_COUNTDOWN_SECONDS = 2
 const MAX_COUNTDOWN_SECONDS = 300
@@ -264,6 +265,10 @@ export function createTodoContinuationEnforcer(
     try {
       log(`[${HOOK_NAME}] Injecting continuation`, { sessionID, agent: agentName, model, incompleteCount: freshIncompleteCount })
 
+      if (state) {
+        state.lastSelfInjectionAt = Date.now()
+      }
+
       await ctx.client.session.prompt({
         path: { id: sessionID },
         body: {
@@ -299,12 +304,14 @@ export function createTodoContinuationEnforcer(
     showCountdownToast(secondsRemaining, incompleteCount)
     state.countdownStartedAt = Date.now()
 
+    // Reduce toast frequency for longer countdowns to avoid UI spam
+    const toastIntervalMs = countdownSeconds > 30 ? 10000 : 1000
     state.countdownInterval = setInterval(() => {
-      secondsRemaining--
+      secondsRemaining -= Math.floor(toastIntervalMs / 1000)
       if (secondsRemaining > 0) {
         showCountdownToast(secondsRemaining, incompleteCount)
       }
-    }, 1000)
+    }, toastIntervalMs)
 
     state.countdownTimer = setTimeout(() => {
       cancelCountdown(sessionID)
@@ -488,9 +495,15 @@ export function createTodoContinuationEnforcer(
             return
           }
         }
+        // Skip reset for self-injected continuation prompts
+        if (state?.lastSelfInjectionAt && Date.now() - state.lastSelfInjectionAt < 5000) {
+          log(`[${HOOK_NAME}] Skipping reset: self-injected message`, { sessionID })
+          return
+        }
         if (state) {
           state.abortDetectedAt = undefined
           state.consecutiveNudges = 0
+          state.lastNudgeAt = undefined
         }
         cancelCountdown(sessionID)
       }
