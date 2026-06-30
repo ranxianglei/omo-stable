@@ -54,7 +54,7 @@ Incomplete tasks remain in your todo list. Before starting any work, FIRST verif
 - Proceed without asking for permission.
 - Mark each task complete when finished.
 - Do not stop until all tasks are done.
-- If you are genuinely blocked and need user input to proceed, state your question clearly and stop. Do not loop or retry.`
+- If you are waiting for user input or feedback, use the bash tool to run a sleep command (e.g., 'sleep 30') instead of continuing immediately.`
 
 const BASE_COUNTDOWN_SECONDS = 2
 const MAX_COUNTDOWN_SECONDS = 300
