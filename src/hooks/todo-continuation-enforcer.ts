@@ -35,7 +35,6 @@ interface Todo {
 
 interface SessionState {
   countdownTimer?: ReturnType<typeof setTimeout>
-  countdownInterval?: ReturnType<typeof setInterval>
   isRecovering?: boolean
   countdownStartedAt?: number
   abortDetectedAt?: number
@@ -141,10 +140,6 @@ export function createTodoContinuationEnforcer(
     if (state.countdownTimer) {
       clearTimeout(state.countdownTimer)
       state.countdownTimer = undefined
-    }
-    if (state.countdownInterval) {
-      clearInterval(state.countdownInterval)
-      state.countdownInterval = undefined
     }
     state.countdownStartedAt = undefined
   }
@@ -300,18 +295,8 @@ export function createTodoContinuationEnforcer(
     cancelCountdown(sessionID)
 
     const countdownSeconds = getCountdownSeconds(state.consecutiveNudges ?? 0)
-    let secondsRemaining = countdownSeconds
-    showCountdownToast(secondsRemaining, incompleteCount)
+    showCountdownToast(countdownSeconds, incompleteCount)
     state.countdownStartedAt = Date.now()
-
-    // Reduce toast frequency for longer countdowns to avoid UI spam
-    const toastIntervalMs = countdownSeconds > 30 ? 10000 : 1000
-    state.countdownInterval = setInterval(() => {
-      secondsRemaining -= Math.floor(toastIntervalMs / 1000)
-      if (secondsRemaining > 0) {
-        showCountdownToast(secondsRemaining, incompleteCount)
-      }
-    }, toastIntervalMs)
 
     state.countdownTimer = setTimeout(() => {
       cancelCountdown(sessionID)
