@@ -1,5 +1,5 @@
 import type { PluginInput } from "@opencode-ai/plugin"
-import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import type { BackgroundManager } from "../features/background-agent"
 import { getMainSessionID, subagentSessions } from "../features/claude-code-session-state"
@@ -8,7 +8,6 @@ import {
     MESSAGE_STORAGE,
     type ToolPermission,
 } from "../features/hook-message-injector"
-import { PART_STORAGE } from "../features/hook-message-injector/constants"
 import { log } from "../shared/logger"
 import { createSystemDirective, SystemDirectiveTypes } from "../shared/system-directive"
 
@@ -74,75 +73,6 @@ function getMessageDir(sessionID: string): string | null {
 
 function getIncompleteCount(todos: Todo[]): number {
   return todos.filter(t => t.status !== "completed" && t.status !== "cancelled").length
-}
-
-interface StoredMessage {
-  id: string
-  role: string
-  time?: { created: number }
-}
-
-interface StoredPart {
-  type: string
-  tool?: string
-  name?: string
-  [key: string]: unknown
-}
-
-function getLastAssistantMessageID(sessionID: string): string | null {
-  const messageDir = getMessageDir(sessionID)
-  if (!messageDir) return null
-
-  try {
-    const files = readdirSync(messageDir)
-      .filter(f => f.endsWith(".json"))
-      .sort()
-      .reverse()
-
-    for (const file of files) {
-      try {
-        const content = readFileSync(join(messageDir, file), "utf-8")
-        const msg = JSON.parse(content) as StoredMessage
-        if (msg.role === "assistant") {
-          return msg.id
-        }
-      } catch {
-        continue
-      }
-    }
-  } catch {
-    return null
-  }
-
-  return null
-}
-
-function isLastAssistantMessageWaitingForUser(sessionID: string): boolean {
-  const messageID = getLastAssistantMessageID(sessionID)
-  if (!messageID) return false
-
-  const partDir = join(PART_STORAGE, messageID)
-  if (!existsSync(partDir)) return false
-
-  try {
-    const partFiles = readdirSync(partDir).filter(f => f.endsWith(".json"))
-    for (const file of partFiles) {
-      try {
-        const content = readFileSync(join(partDir, file), "utf-8")
-        const part = JSON.parse(content) as StoredPart
-        if ((part.type === "tool" || part.type === "tool_use") &&
-            (part.tool === "question" || part.name === "question")) {
-          return true
-        }
-      } catch {
-        continue
-      }
-    }
-  } catch {
-    return false
-  }
-
-  return false
 }
 
 interface MessageInfo {
@@ -512,11 +442,6 @@ export function createTodoContinuationEnforcer(
       }
       if (hasCompactionMessage && !resolvedInfo?.agent) {
         log(`[${HOOK_NAME}] Skipped: compaction occurred but no agent info resolved`, { sessionID })
-        return
-      }
-
-      if (isLastAssistantMessageWaitingForUser(sessionID)) {
-        log(`[${HOOK_NAME}] Skipped: last assistant message is waiting for user input`, { sessionID })
         return
       }
 
