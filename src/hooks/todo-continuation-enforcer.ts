@@ -42,6 +42,8 @@ interface SessionState {
   consecutiveNudges?: number
   lastNudgeAt?: number
   lastSelfInjectionAt?: number
+  stuckNudges?: number
+  lastNudgeIncompleteCount?: number
 }
 
 const CONTINUATION_PROMPT = `${createSystemDirective(SystemDirectiveTypes.TODO_CONTINUATION)}
@@ -52,7 +54,7 @@ Incomplete tasks remain in your todo list. Before starting any work, FIRST verif
 - THEN: Continue working on the next truly pending task.
 - Proceed without asking for permission.
 - Mark each task complete when finished.
-- If you are waiting for user feedback or must pause for any other necessary reason, you should use a bash command (e.g., sleep 100) rather than immediately resuming work or simply stopping without doing anything.
+- If you are waiting for user feedback or must pause for any other necessary reason, you should use a bash command (e.g., sleep 180) rather than immediately resuming work or simply stopping without doing anything.
 - Else do not stop until all tasks are done.`
 
 const BASE_COUNTDOWN_SECONDS = 2
@@ -60,6 +62,7 @@ const MAX_COUNTDOWN_SECONDS = 300
 const TOAST_DURATION_MS = 900
 const COUNTDOWN_GRACE_PERIOD_MS = 500
 const MAX_EMPTY_RESPONSE_RETRIES = 2
+const MAX_STUCK_NUDGES = 5
 
 function getCountdownSeconds(consecutiveNudges: number): number {
   const seconds = BASE_COUNTDOWN_SECONDS * Math.pow(2, consecutiveNudges)
@@ -279,6 +282,8 @@ export function createTodoContinuationEnforcer(
       if (state) {
         state.lastNudgeAt = Date.now()
         state.consecutiveNudges = (state.consecutiveNudges ?? 0) + 1
+        state.lastNudgeIncompleteCount = freshIncompleteCount
+        state.stuckNudges = (state.stuckNudges ?? 0) + 1
       }
     } catch (err) {
       log(`[${HOOK_NAME}] Injection failed`, { sessionID, error: String(err) })
@@ -416,6 +421,22 @@ export function createTodoContinuationEnforcer(
         return
       }
 
+      // Progress = fewer incomplete todos than at the last nudge. Reset the
+      // stuck counter so legitimate multi-step work is never capped.
+      if (state.lastNudgeIncompleteCount !== undefined && incompleteCount < state.lastNudgeIncompleteCount) {
+        if (state.stuckNudges) {
+          log(`[${HOOK_NAME}] Progress detected, resetting stuck counter`, { sessionID, prev: state.lastNudgeIncompleteCount, current: incompleteCount })
+          state.stuckNudges = 0
+        }
+      }
+
+      // Hard stop: too many consecutive nudges with no todo progress. Prevents
+      // unbounded token waste when the model is stuck or waiting for input.
+      if ((state.stuckNudges ?? 0) >= MAX_STUCK_NUDGES) {
+        log(`[${HOOK_NAME}] Skipped: reached max ${MAX_STUCK_NUDGES} nudges with no progress`, { sessionID, stuckNudges: state.stuckNudges })
+        return
+      }
+
       let resolvedInfo: ResolvedMessageInfo | undefined
       let hasCompactionMessage = false
       try {
@@ -489,6 +510,8 @@ export function createTodoContinuationEnforcer(
           state.abortDetectedAt = undefined
           state.consecutiveNudges = 0
           state.lastNudgeAt = undefined
+          state.stuckNudges = 0
+          state.lastNudgeIncompleteCount = undefined
         }
         cancelCountdown(sessionID)
       }
