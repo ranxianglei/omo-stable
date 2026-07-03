@@ -54,15 +54,14 @@ Incomplete tasks remain in your todo list. Before starting any work, FIRST verif
 - THEN: Continue working on the next truly pending task.
 - Proceed without asking for permission.
 - Mark each task complete when finished.
-- If you are waiting for user feedback or must pause for any other necessary reason, you should use a bash command (e.g., sleep 180) rather than immediately resuming work or simply stopping without doing anything.
-- Else do not stop until all tasks are done.`
+- Unless you are waiting for user feedback or clarification (in which case you may stop and wait for a reply), do not stop until all tasks are done.`
 
 const BASE_COUNTDOWN_SECONDS = 2
 const MAX_COUNTDOWN_SECONDS = 300
 const TOAST_DURATION_MS = 900
 const COUNTDOWN_GRACE_PERIOD_MS = 500
 const MAX_EMPTY_RESPONSE_RETRIES = 2
-const MAX_STUCK_NUDGES = 5
+const MAX_STUCK_NUDGES = 1
 
 function getCountdownSeconds(consecutiveNudges: number): number {
   const seconds = BASE_COUNTDOWN_SECONDS * Math.pow(2, consecutiveNudges)
