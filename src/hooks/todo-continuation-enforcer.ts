@@ -35,11 +35,15 @@ interface Todo {
 
 interface SessionState {
   countdownTimer?: ReturnType<typeof setTimeout>
-  countdownInterval?: ReturnType<typeof setInterval>
   isRecovering?: boolean
   countdownStartedAt?: number
   abortDetectedAt?: number
   consecutiveEmptyResponses?: number
+  consecutiveNudges?: number
+  lastNudgeAt?: number
+  lastSelfInjectionAt?: number
+  stuckNudges?: number
+  lastNudgeIncompleteCount?: number
 }
 
 const CONTINUATION_PROMPT = `${createSystemDirective(SystemDirectiveTypes.TODO_CONTINUATION)}
@@ -50,12 +54,19 @@ Incomplete tasks remain in your todo list. Before starting any work, FIRST verif
 - THEN: Continue working on the next truly pending task.
 - Proceed without asking for permission.
 - Mark each task complete when finished.
-- Do not stop until all tasks are done.`
+- Unless you are waiting for user feedback or clarification (in which case you may stop and wait for a reply), do not stop until all tasks are done.`
 
-const COUNTDOWN_SECONDS = 2
+const BASE_COUNTDOWN_SECONDS = 2
+const MAX_COUNTDOWN_SECONDS = 300
 const TOAST_DURATION_MS = 900
 const COUNTDOWN_GRACE_PERIOD_MS = 500
 const MAX_EMPTY_RESPONSE_RETRIES = 2
+const MAX_STUCK_NUDGES = 1
+
+function getCountdownSeconds(consecutiveNudges: number): number {
+  const seconds = BASE_COUNTDOWN_SECONDS * Math.pow(2, consecutiveNudges)
+  return Math.min(seconds, MAX_COUNTDOWN_SECONDS)
+}
 
 function getMessageDir(sessionID: string): string | null {
   if (!existsSync(MESSAGE_STORAGE)) return null
@@ -131,10 +142,6 @@ export function createTodoContinuationEnforcer(
     if (state.countdownTimer) {
       clearTimeout(state.countdownTimer)
       state.countdownTimer = undefined
-    }
-    if (state.countdownInterval) {
-      clearInterval(state.countdownInterval)
-      state.countdownInterval = undefined
     }
     state.countdownStartedAt = undefined
   }
@@ -242,10 +249,22 @@ export function createTodoContinuationEnforcer(
       return
     }
 
-    const prompt = `${CONTINUATION_PROMPT}\n\n[Status: ${todos.length - freshIncompleteCount}/${todos.length} completed, ${freshIncompleteCount} remaining]`
+    const now = Date.now()
+    const elapsedSinceLastNudge = state?.lastNudgeAt
+      ? Math.round((now - state.lastNudgeAt) / 1000)
+      : null
+
+    const prompt = `${CONTINUATION_PROMPT}
+
+[Status: ${todos.length - freshIncompleteCount}/${todos.length} completed, ${freshIncompleteCount} remaining]
+[Current time: ${new Date().toISOString()}${elapsedSinceLastNudge !== null ? ` | Time since last prompt: ${elapsedSinceLastNudge}s` : " | First prompt this session"}]`
 
     try {
       log(`[${HOOK_NAME}] Injecting continuation`, { sessionID, agent: agentName, model, incompleteCount: freshIncompleteCount })
+
+      if (state) {
+        state.lastSelfInjectionAt = Date.now()
+      }
 
       await ctx.client.session.prompt({
         path: { id: sessionID },
@@ -258,6 +277,13 @@ export function createTodoContinuationEnforcer(
       })
 
       log(`[${HOOK_NAME}] Injection successful`, { sessionID })
+
+      if (state) {
+        state.lastNudgeAt = Date.now()
+        state.consecutiveNudges = (state.consecutiveNudges ?? 0) + 1
+        state.lastNudgeIncompleteCount = freshIncompleteCount
+        state.stuckNudges = (state.stuckNudges ?? 0) + 1
+      }
     } catch (err) {
       log(`[${HOOK_NAME}] Injection failed`, { sessionID, error: String(err) })
     }
@@ -272,23 +298,16 @@ export function createTodoContinuationEnforcer(
     const state = getState(sessionID)
     cancelCountdown(sessionID)
 
-    let secondsRemaining = COUNTDOWN_SECONDS
-    showCountdownToast(secondsRemaining, incompleteCount)
+    const countdownSeconds = getCountdownSeconds(state.consecutiveNudges ?? 0)
+    showCountdownToast(countdownSeconds, incompleteCount)
     state.countdownStartedAt = Date.now()
-
-    state.countdownInterval = setInterval(() => {
-      secondsRemaining--
-      if (secondsRemaining > 0) {
-        showCountdownToast(secondsRemaining, incompleteCount)
-      }
-    }, 1000)
 
     state.countdownTimer = setTimeout(() => {
       cancelCountdown(sessionID)
       injectContinuation(sessionID, incompleteCount, total, resolvedInfo)
-    }, COUNTDOWN_SECONDS * 1000)
+    }, countdownSeconds * 1000)
 
-    log(`[${HOOK_NAME}] Countdown started`, { sessionID, seconds: COUNTDOWN_SECONDS, incompleteCount })
+    log(`[${HOOK_NAME}] Countdown started`, { sessionID, seconds: countdownSeconds, consecutiveNudges: state.consecutiveNudges ?? 0, incompleteCount })
   }
 
   const handler = async ({ event }: { event: { type: string; properties?: unknown } }): Promise<void> => {
@@ -401,6 +420,22 @@ export function createTodoContinuationEnforcer(
         return
       }
 
+      // Progress = fewer incomplete todos than at the last nudge. Reset the
+      // stuck counter so legitimate multi-step work is never capped.
+      if (state.lastNudgeIncompleteCount !== undefined && incompleteCount < state.lastNudgeIncompleteCount) {
+        if (state.stuckNudges) {
+          log(`[${HOOK_NAME}] Progress detected, resetting stuck counter`, { sessionID, prev: state.lastNudgeIncompleteCount, current: incompleteCount })
+          state.stuckNudges = 0
+        }
+      }
+
+      // Hard stop: too many consecutive nudges with no todo progress. Prevents
+      // unbounded token waste when the model is stuck or waiting for input.
+      if ((state.stuckNudges ?? 0) >= MAX_STUCK_NUDGES) {
+        log(`[${HOOK_NAME}] Skipped: reached max ${MAX_STUCK_NUDGES} nudges with no progress`, { sessionID, stuckNudges: state.stuckNudges })
+        return
+      }
+
       let resolvedInfo: ResolvedMessageInfo | undefined
       let hasCompactionMessage = false
       try {
@@ -465,7 +500,18 @@ export function createTodoContinuationEnforcer(
             return
           }
         }
-        if (state) state.abortDetectedAt = undefined
+        // Skip reset for self-injected continuation prompts
+        if (state?.lastSelfInjectionAt && Date.now() - state.lastSelfInjectionAt < 5000) {
+          log(`[${HOOK_NAME}] Skipping reset: self-injected message`, { sessionID })
+          return
+        }
+        if (state) {
+          state.abortDetectedAt = undefined
+          state.consecutiveNudges = 0
+          state.lastNudgeAt = undefined
+          state.stuckNudges = 0
+          state.lastNudgeIncompleteCount = undefined
+        }
         cancelCountdown(sessionID)
       }
 
