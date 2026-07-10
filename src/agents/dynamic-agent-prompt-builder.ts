@@ -191,7 +191,7 @@ ${categoryRows.join("\n")}
 |-------|------------------|
 ${skillRows.join("\n")}
 
-Match task to the best category. Include ALL relevant skills in \`load_skills\`. Subagents are stateless — they only know what you tell them. Never pass \`load_skills=[]\` without justifying why no skills apply.
+Match task to the best category. For EACH skill in the table, decide if it applies — include all that do. If \`load_skills=[]\`, state why each skill was rejected. Subagents are stateless — they only know what you tell them.
 
 \`\`\`typescript
 delegate_task(category="[best-match]", load_skills=["relevant-skills"], prompt="...")
