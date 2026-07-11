@@ -10,7 +10,6 @@ This document is the authoritative spec for **development, build, deployment, an
 
 | Item | Value |
 |------|-------|
-| Local source | `~/projects/oh-my-openagent/` |
 | GitHub (canonical) | `github.com/ranxianglei/omo-stable` (remote `github`) |
 | Self-hosted mirror | `192.168.10.96:3300/dog/omo-stable` (remote `gitea`) |
 | Upstream (do not push) | `code-yeongyu/oh-my-openagent` (remote `origin`) |
@@ -111,12 +110,14 @@ bun test path/to/file  # run one test file
 **One script** — build (Docker) + deploy to the local plugin cache + checksum-verify:
 
 ```bash
-~/scripts/deploy-omo.sh             # Build via Docker + deploy + verify
-~/scripts/deploy-omo.sh --no-build  # Deploy existing dist/index.js only
+./script/deploy-omo.sh             # Build via Docker + deploy + verify
+./script/deploy-omo.sh --no-build  # Deploy existing dist/index.js only
 ```
 
+The script resolves the project root relative to its own location (`script/` dir), so it works from any checkout. Install targets are overridable via `OMO_STABLE_TARGET` and `OMO_FORK_TARGET` env vars.
+
 What it does:
-1. Build: `sg docker -c "docker run --rm -v ~/projects/oh-my-openagent:/app -w /app oven/bun:latest bash -c 'bun install && bun build src/index.ts --outdir dist --target bun --format esm --external @ast-grep/napi'"`
+1. Build: `sg docker -c "docker run --rm -v $OMO_SOURCE:/app -w /app oven/bun:latest bash -c 'bun install && bun build src/index.ts --outdir dist --target bun --format esm --external @ast-grep/napi'"`
 2. Copy `dist/index.js` (with timestamped `.bak`) to **both**:
    - `~/.cache/opencode/node_modules/omo-stable/dist/index.js` ← **active** (referenced by `~/.opencode/opencode.json` via `file://`)
    - `~/.cache/opencode/node_modules/omo-fork/dist/index.js` ← legacy path, kept in sync
@@ -129,7 +130,7 @@ What it does:
 grep -c 'your-feature-name' ~/.cache/opencode/node_modules/omo-stable/dist/index.js
 ```
 
-> Note: `deploy-omo.sh` builds only `dist/index.js` (the plugin entry) via the `bun build` one-liner — it does **not** generate declarations, CLI, or schema. That is sufficient for plugin loading. For a full publishable build (declarations + cli + schema), use `bun run build` locally (§3.1) or `npm publish` (which runs `prepublishOnly`).
+> Note: `script/deploy-omo.sh` builds only `dist/index.js` (the plugin entry) via the `bun build` one-liner — it does **not** generate declarations, CLI, or schema. That is sufficient for plugin loading. For a full publishable build (declarations + cli + schema), use `bun run build` locally (§3.1) or `npm publish` (which runs `prepublishOnly`).
 
 ---
 
