@@ -49,7 +49,6 @@
         "type": "string",
         "enum": [
           "todo-continuation-enforcer",
-          "context-window-monitor",
           "session-recovery",
           "session-notification",
           "comment-checker",
@@ -59,7 +58,6 @@
           "directory-readme-injector",
           "empty-task-response-detector",
           "think-mode",
-          "anthropic-context-window-limit-recovery",
           "rules-injector",
           "background-notification",
           "auto-update-checker",
@@ -70,7 +68,6 @@
           "interactive-bash-session",
           "thinking-block-validator",
           "ralph-loop",
-          "compaction-context-injector",
           "claude-code-hooks",
           "auto-slash-command",
           "edit-error-recovery",

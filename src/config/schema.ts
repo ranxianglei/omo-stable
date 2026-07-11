@@ -54,7 +54,6 @@ export const AgentNameSchema = BuiltinAgentNameSchema
 
 export const HookNameSchema = z.enum([
   "todo-continuation-enforcer",
-  "context-window-monitor",
   "session-recovery",
   "session-notification",
   "comment-checker",
@@ -64,7 +63,6 @@ export const HookNameSchema = z.enum([
   "directory-readme-injector",
   "empty-task-response-detector",
   "think-mode",
-  "anthropic-context-window-limit-recovery",
   "rules-injector",
   "background-notification",
   "auto-update-checker",
@@ -77,7 +75,6 @@ export const HookNameSchema = z.enum([
   "thinking-block-validator",
   "ralph-loop",
 
-  "compaction-context-injector",
   "claude-code-hooks",
   "auto-slash-command",
   "edit-error-recovery",

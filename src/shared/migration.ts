@@ -60,12 +60,15 @@ export const BUILTIN_AGENT_NAMES = new Set([
 // null means the hook was removed and should be filtered out from disabled_hooks
 export const HOOK_NAME_MAP: Record<string, string | null> = {
   // Legacy names (backward compatibility)
-  "anthropic-auto-compact": "anthropic-context-window-limit-recovery",
   "sisyphus-orchestrator": "atlas",
 
-  // Removed hooks (v3.0.0) - will be filtered out and user warned
+  // Removed hooks - will be filtered out and user warned
   "preemptive-compaction": null,
   "empty-message-sanitizer": null,
+  "anthropic-auto-compact": null,
+  "context-window-monitor": null,
+  "anthropic-context-window-limit-recovery": null,
+  "compaction-context-injector": null,
 }
 
 /**

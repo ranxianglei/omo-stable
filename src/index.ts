@@ -1,7 +1,6 @@
 import type { Plugin } from "@opencode-ai/plugin";
 import {
   createTodoContinuationEnforcer,
-  createContextWindowMonitorHook,
   createSessionRecoveryHook,
   createSessionNotification,
   createCommentCheckerHooks,
@@ -11,9 +10,7 @@ import {
   createEmptyTaskResponseDetectorHook,
   createThinkModeHook,
   createClaudeCodeHooksHook,
-  createAnthropicContextWindowLimitRecoveryHook,
 
-  createCompactionContextInjector,
   createRulesInjectorHook,
   createBackgroundNotificationHook,
   createAutoUpdateCheckerHook,
@@ -91,9 +88,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
 
   const modelCacheState = createModelCacheState();
 
-  const contextWindowMonitor = isHookEnabled("context-window-monitor")
-    ? createContextWindowMonitorHook(ctx)
-    : null;
   const sessionRecovery = isHookEnabled("session-recovery")
     ? createSessionRecoveryHook(ctx, { experimental: pluginConfig.experimental })
     : null;
@@ -142,16 +136,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     },
     contextCollector
   );
-  const anthropicContextWindowLimitRecovery = isHookEnabled(
-    "anthropic-context-window-limit-recovery"
-  )
-    ? createAnthropicContextWindowLimitRecoveryHook(ctx, {
-        experimental: pluginConfig.experimental,
-      })
-    : null;
-  const compactionContextInjector = isHookEnabled("compaction-context-injector")
-    ? createCompactionContextInjector()
-    : undefined;
   const rulesInjector = isHookEnabled("rules-injector")
     ? createRulesInjectorHook(ctx)
     : null;
@@ -411,12 +395,10 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await backgroundNotificationHook?.event(input);
       await sessionNotification?.(input);
       await todoContinuationEnforcer?.handler(input);
-      await contextWindowMonitor?.event(input);
       await directoryAgentsInjector?.event(input);
       await directoryReadmeInjector?.event(input);
       await rulesInjector?.event(input);
       await thinkMode?.event(input);
-      await anthropicContextWindowLimitRecovery?.event(input);
       await agentUsageReminder?.event(input);
       await interactiveBashSession?.event(input);
       await ralphLoop?.event(input);
@@ -567,7 +549,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     "tool.execute.after": async (input, output) => {
       await claudeCodeHooks["tool.execute.after"](input, output);
       await toolOutputTruncator?.["tool.execute.after"](input, output);
-      await contextWindowMonitor?.["tool.execute.after"](input, output);
       await commentChecker?.["tool.execute.after"](input, output);
       await directoryAgentsInjector?.["tool.execute.after"](input, output);
       await directoryReadmeInjector?.["tool.execute.after"](input, output);

@@ -199,27 +199,26 @@ describe("migrateAgentNames", () => {
 })
 
 describe("migrateHookNames", () => {
-  test("migrates anthropic-auto-compact to anthropic-context-window-limit-recovery", () => {
+  test("removes anthropic-auto-compact (superseded by ACP)", () => {
     // #given: Config with legacy hook name
     const hooks = ["anthropic-auto-compact", "comment-checker"]
 
     // #when: Migrate hook names
     const { migrated, changed, removed } = migrateHookNames(hooks)
 
-    // #then: Legacy hook name should be migrated
+    // #then: Legacy hook name should be removed
     expect(changed).toBe(true)
-    expect(migrated).toContain("anthropic-context-window-limit-recovery")
     expect(migrated).toContain("comment-checker")
     expect(migrated).not.toContain("anthropic-auto-compact")
-    expect(removed).toEqual([])
+    expect(removed).toContain("anthropic-auto-compact")
   })
 
   test("preserves current hook names unchanged", () => {
     // #given: Config with current hook names
     const hooks = [
-      "anthropic-context-window-limit-recovery",
       "todo-continuation-enforcer",
       "session-recovery",
+      "tool-output-truncator",
     ]
 
     // #when: Migrate hook names
@@ -244,16 +243,17 @@ describe("migrateHookNames", () => {
     expect(removed).toEqual([])
   })
 
-  test("migrates multiple legacy hook names", () => {
-    // #given: Multiple legacy hook names (if more are added in future)
+  test("removes multiple legacy hook names", () => {
+    // #given: Multiple legacy hook names
     const hooks = ["anthropic-auto-compact"]
 
     // #when: Migrate hook names
-    const { migrated, changed } = migrateHookNames(hooks)
+    const { migrated, changed, removed } = migrateHookNames(hooks)
 
-    // #then: All legacy names should be migrated
+    // #then: All legacy names should be removed
     expect(changed).toBe(true)
-    expect(migrated).toEqual(["anthropic-context-window-limit-recovery"])
+    expect(migrated).toEqual([])
+    expect(removed).toEqual(["anthropic-auto-compact"])
   })
 
   test("migrates sisyphus-orchestrator to atlas", () => {
@@ -272,8 +272,8 @@ describe("migrateHookNames", () => {
   })
 
   test("removes obsolete hooks and returns them in removed array", () => {
-    // #given: Config with removed hooks from v3.0.0
-    const hooks = ["preemptive-compaction", "empty-message-sanitizer", "comment-checker"]
+    // #given: Config with removed hooks
+    const hooks = ["preemptive-compaction", "empty-message-sanitizer", "anthropic-auto-compact", "context-window-monitor", "comment-checker"]
 
     // #when: Migrate hook names
     const { migrated, changed, removed } = migrateHookNames(hooks)
@@ -283,7 +283,9 @@ describe("migrateHookNames", () => {
     expect(migrated).toEqual(["comment-checker"])
     expect(removed).toContain("preemptive-compaction")
     expect(removed).toContain("empty-message-sanitizer")
-    expect(removed).toHaveLength(2)
+    expect(removed).toContain("anthropic-auto-compact")
+    expect(removed).toContain("context-window-monitor")
+    expect(removed).toHaveLength(4)
   })
 
   test("handles mixed migration and removal", () => {
@@ -295,10 +297,10 @@ describe("migrateHookNames", () => {
 
     // #then: Legacy should be renamed, removed should be filtered
     expect(changed).toBe(true)
-    expect(migrated).toContain("anthropic-context-window-limit-recovery")
     expect(migrated).toContain("atlas")
     expect(migrated).not.toContain("preemptive-compaction")
-    expect(removed).toEqual(["preemptive-compaction"])
+    expect(migrated).not.toContain("anthropic-auto-compact")
+    expect(removed).toEqual(["anthropic-auto-compact", "preemptive-compaction"])
   })
 })
 
@@ -349,8 +351,8 @@ describe("migrateConfigFile", () => {
 
     // #then: Hook names should be migrated
     expect(needsWrite).toBe(true)
-    expect(rawConfig.disabled_hooks).toContain("anthropic-context-window-limit-recovery")
     expect(rawConfig.disabled_hooks).not.toContain("anthropic-auto-compact")
+    expect(rawConfig.disabled_hooks).toContain("comment-checker")
   })
 
   test("does not write if no migration needed", () => {
@@ -360,7 +362,7 @@ describe("migrateConfigFile", () => {
       agents: {
         sisyphus: { model: "test" },
       },
-      disabled_hooks: ["anthropic-context-window-limit-recovery"],
+      disabled_hooks: ["tool-output-truncator"],
     }
 
     // #when: Migrate config file
@@ -391,7 +393,7 @@ describe("migrateConfigFile", () => {
     const agents = rawConfig.agents as Record<string, unknown>
     expect(agents["sisyphus"]).toBeDefined()
     expect(agents["prometheus"]).toBeDefined()
-    expect(rawConfig.disabled_hooks).toContain("anthropic-context-window-limit-recovery")
+    expect(rawConfig.disabled_hooks).not.toContain("anthropic-auto-compact")
   })
 })
 
@@ -407,10 +409,13 @@ describe("migration maps", () => {
     expect(AGENT_NAME_MAP["plan-consultant"]).toBe("metis")
   })
 
-  test("HOOK_NAME_MAP contains anthropic-auto-compact migration", () => {
+  test("HOOK_NAME_MAP marks anthropic-auto-compact as removed", () => {
     // #given/#when: Check HOOK_NAME_MAP
-    // #then: Should contain be legacy hook name mapping
-    expect(HOOK_NAME_MAP["anthropic-auto-compact"]).toBe("anthropic-context-window-limit-recovery")
+    // #then: anthropic-auto-compact should be removed (null)
+    expect(HOOK_NAME_MAP["anthropic-auto-compact"]).toBeNull()
+    expect(HOOK_NAME_MAP["context-window-monitor"]).toBeNull()
+    expect(HOOK_NAME_MAP["anthropic-context-window-limit-recovery"]).toBeNull()
+    expect(HOOK_NAME_MAP["compaction-context-injector"]).toBeNull()
   })
 })
 
