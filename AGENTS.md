@@ -11,21 +11,10 @@ This document is the authoritative spec for **development, build, deployment, an
 | Item | Value |
 |------|-------|
 | GitHub (canonical) | `github.com/ranxianglei/omo-stable` (remote `github`) |
-| Self-hosted mirror | `192.168.10.96:3300/dog/omo-stable` (remote `gitea`) |
 | Upstream (do not push) | `code-yeongyu/oh-my-openagent` (remote `origin`) |
 | Old fork remote | `ranxianglei/oh-my-openagent` (remote `fork`, legacy) |
 | Package name | `omo-stable` (npm) |
 | Plugin load (local) | `file://` → `~/.cache/opencode/node_modules/omo-stable/dist/index.js` |
-
-**Network note (this machine):**
-- `github.com:443` is **unreachable directly** — all git/gh operations to GitHub require the **proxy `http://127.0.0.1:20171`**.
-- `registry.npmjs.org` is **directly reachable** (`npm ping` ~650ms) — **NEVER use the proxy for npm** (it hangs publish indefinitely).
-
-```bash
-# GitHub git/gh — ALWAYS with proxy:
-export http_proxy=http://127.0.0.1:20171 https_proxy=http://127.0.0.1:20171 ALL_PROXY=http://127.0.0.1:20171
-# npm — NEVER with proxy (run in a shell WITHOUT the above exports).
-```
 
 ---
 
@@ -141,7 +130,7 @@ This is the canonical release path. All changes go through PR + merge; npm publi
 ### 5.1 Make a change
 
 ```bash
-git checkout master && git pull github master   # via proxy
+git checkout master && git pull github master
 git checkout -b <type>/<short-desc>             # e.g. fix/todo-continuation-cap
 # ... edit, test (bun test), typecheck (bun run typecheck) ...
 git add <files> && git commit -m "<type>: <description>"
@@ -150,7 +139,6 @@ git add <files> && git commit -m "<type>: <description>"
 ### 5.2 Push + open PR on GitHub
 
 ```bash
-export http_proxy=http://127.0.0.1:20171 https_proxy=http://127.0.0.1:20171 ALL_PROXY=http://127.0.0.1:20171
 git push github <type>/<short-desc>
 gh pr create --repo ranxianglei/omo-stable --base master --title "<type>: <desc>" --body "..."
 ```
@@ -167,7 +155,7 @@ gh pr view <N> --repo ranxianglei/omo-stable --json state -q '.state'   # → ME
 ### 5.4 Bump version + publish to npm + version PR
 
 ```bash
-# 1. Sync local master (via proxy)
+# 1. Sync local master
 git checkout master && git pull github master
 
 # 2. Version-bump branch
@@ -178,23 +166,21 @@ grep '"version"' package.json | head -1   # verify
 # 3. Full build (declares + cli + schema) — MUST pass
 bun run build
 
-# 4. Publish — NO proxy shell (npm registry is direct), guard override required
-unset http_proxy https_proxy ALL_PROXY
+# 4. Publish (guard override required)
 export NPM_ALLOW_DANGEROUS=1
 npm publish --access public              # prepublishOnly runs clean + build, then publishes
 
 # 5. Verify
 npm view omo-stable version              # → <X.Y.Z>
 
-# 6. Version PR (via proxy)
-export http_proxy=http://127.0.0.1:20171 https_proxy=http://127.0.0.1:20171 ALL_PROXY=http://127.0.0.1:20171
+# 6. Version PR
 git add package.json && git commit -m "chore: bump version to <X.Y.Z>"
 git push github chore/bump-<X.Y.Z>
 gh pr create --repo ranxianglei/omo-stable --base master --title "chore: bump version to <X.Y.Z>" --body "..."
 # then merge it (§5.3)
 
 # 7. Sync local install
-~/scripts/deploy-omo.sh
+./script/deploy-omo.sh
 ```
 
 **Version policy:** `major.minor.patch`. Bug fixes / small behavior changes → patch. New features / notable behavior changes → minor. Breaking → major. (`3.0.1 → 3.1.0` was a minor, reflecting the todo-continuation behavior change.)
@@ -206,7 +192,7 @@ gh pr create --repo ranxianglei/omo-stable --base master --title "chore: bump ve
 3. `bun test` — no NEW failures (pre-existing flaky tests noted in §3.3).
 4. Working tree clean except the intended `package.json` version bump.
 5. `npm view omo-stable version` — confirm the target version is not already published.
-6. Publish from a shell **without** the proxy env vars.
+6. Publish from a clean shell (no proxy env vars if npm registry is directly reachable).
 
 ---
 
@@ -251,7 +237,7 @@ Two guards block destructive ops by default — override only with explicit huma
 | Type safety | `as any`, `@ts-ignore`, `@ts-expect-error` |
 | Testing | Deleting failing tests to "pass" |
 | Publishing | Direct to `master` without PR |
-| npm publish | Via the proxy (hangs) — always direct |
+| npm publish | With proxy env vars set (if npm is directly reachable) |
 | Commits | Mixing 3+ unrelated files in one commit |
 
 ---
