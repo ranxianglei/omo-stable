@@ -24,6 +24,7 @@ export interface TodoContinuationEnforcer {
   handler: (input: { event: { type: string; properties?: unknown } }) => Promise<void>
   markRecovering: (sessionID: string) => void
   markRecoveryComplete: (sessionID: string) => void
+  cleanup: () => void
 }
 
 interface Todo {
@@ -119,6 +120,17 @@ function isLastAssistantMessageAborted(messages: Array<{ info?: MessageInfo }>):
   return !!isEmptyResponse
 }
 
+function isExplicitAbort(messages: Array<{ info?: MessageInfo }>): boolean {
+  if (!messages || messages.length === 0) return false
+
+  const assistantMessages = messages.filter(m => m.info?.role === "assistant")
+  if (assistantMessages.length === 0) return false
+
+  const lastAssistant = assistantMessages[assistantMessages.length - 1]
+  const errorName = lastAssistant.info?.error?.name
+  return errorName === "MessageAbortedError" || errorName === "AbortError"
+}
+
 export function createTodoContinuationEnforcer(
   ctx: PluginInput,
   options: TodoContinuationEnforcerOptions = {}
@@ -146,7 +158,7 @@ export function createTodoContinuationEnforcer(
     state.countdownStartedAt = undefined
   }
 
-  function cleanup(sessionID: string): void {
+  function cleanupSession(sessionID: string): void {
     cancelCountdown(sessionID)
     sessions.delete(sessionID)
   }
@@ -380,6 +392,11 @@ export function createTodoContinuationEnforcer(
         })
         const messages = (messagesResp as { data?: Array<{ info?: MessageInfo }> }).data ?? []
 
+        if (isExplicitAbort(messages)) {
+          log(`[${HOOK_NAME}] Skipped: explicit abort (MessageAbortedError/AbortError)`, { sessionID })
+          return
+        }
+
         if (isLastAssistantMessageAborted(messages)) {
           state.consecutiveEmptyResponses = (state.consecutiveEmptyResponses || 0) + 1
 
@@ -549,16 +566,24 @@ export function createTodoContinuationEnforcer(
     if (event.type === "session.deleted") {
       const sessionInfo = props?.info as { id?: string } | undefined
       if (sessionInfo?.id) {
-        cleanup(sessionInfo.id)
+        cleanupSession(sessionInfo.id)
         log(`[${HOOK_NAME}] Session deleted: cleaned up`, { sessionID: sessionInfo.id })
       }
       return
     }
   }
 
+  const cleanup = (): void => {
+    for (const sessionID of sessions.keys()) {
+      cancelCountdown(sessionID)
+    }
+    sessions.clear()
+  }
+
   return {
     handler,
     markRecovering,
     markRecoveryComplete,
+    cleanup,
   }
 }

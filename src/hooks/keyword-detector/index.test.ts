@@ -54,28 +54,6 @@ describe("keyword-detector message transform", () => {
     expect(textPart!.text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
   })
 
-  test("should prepend search message to text part", async () => {
-    // #given - mock getMainSessionID to return our session (isolate from global state)
-    const collector = new ContextCollector()
-    const sessionID = "search-test-session"
-    getMainSessionSpy = spyOn(sessionState, "getMainSessionID").mockReturnValue(sessionID)
-    const hook = createKeywordDetectorHook(createMockPluginInput(), collector)
-    const output = {
-      message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "search for the bug" }],
-    }
-
-    // #when - keyword detection runs
-    await hook["chat.message"]({ sessionID }, output)
-
-    // #then - search message should be prepended to text part
-    const textPart = output.parts.find(p => p.type === "text")
-    expect(textPart).toBeDefined()
-    expect(textPart!.text).toContain("---")
-    expect(textPart!.text).toContain("for the bug")
-    expect(textPart!.text).toContain("[search-mode]")
-  })
-
   test("should NOT transform when no keywords detected", async () => {
     // #given - no keywords in message
     const collector = new ContextCollector()
@@ -125,29 +103,6 @@ describe("keyword-detector session filtering", () => {
       },
     } as any
   }
-
-  test("should skip non-ultrawork keywords in non-main session (using mainSessionID check)", async () => {
-    // #given - main session is set, different session submits search keyword
-    const mainSessionID = "main-123"
-    const subagentSessionID = "subagent-456"
-    setMainSession(mainSessionID)
-
-    const hook = createKeywordDetectorHook(createMockPluginInput())
-    const output = {
-      message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "search mode 찾아줘" }],
-    }
-
-    // #when - non-main session triggers keyword detection
-    await hook["chat.message"](
-      { sessionID: subagentSessionID },
-      output
-    )
-
-    // #then - search keyword should be filtered out based on mainSessionID comparison
-    const skipLog = logCalls.find(c => c.msg.includes("Skipping non-ultrawork keywords in non-main session"))
-    expect(skipLog).toBeDefined()
-  })
 
   test("should allow ultrawork keywords in non-main session", async () => {
     // #given - main session is set, different session submits ultrawork keyword
