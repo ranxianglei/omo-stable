@@ -39,133 +39,19 @@ describe("AGENT_MODEL_REQUIREMENTS", () => {
     expect(primary.variant).toBe("max")
   })
 
-  test("librarian has valid fallbackChain with glm-4.7 as primary", () => {
-    // #given - librarian agent requirement
-    const librarian = AGENT_MODEL_REQUIREMENTS["librarian"]
-
-    // #when - accessing librarian requirement
-    // #then - fallbackChain exists with glm-4.7 as first entry
-    expect(librarian).toBeDefined()
-    expect(librarian.fallbackChain).toBeArray()
-    expect(librarian.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = librarian.fallbackChain[0]
-    expect(primary.providers[0]).toBe("zai-coding-plan")
-    expect(primary.model).toBe("glm-4.7")
-  })
-
-  test("explore has valid fallbackChain with claude-haiku-4-5 as primary", () => {
-    // #given - explore agent requirement
-    const explore = AGENT_MODEL_REQUIREMENTS["explore"]
-
-    // #when - accessing explore requirement
-    // #then - fallbackChain exists with claude-haiku-4-5 as first entry
-    expect(explore).toBeDefined()
-    expect(explore.fallbackChain).toBeArray()
-    expect(explore.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = explore.fallbackChain[0]
-    expect(primary.providers).toContain("anthropic")
-    expect(primary.model).toBe("claude-haiku-4-5")
-  })
-
-  test("multimodal-looker has valid fallbackChain with gemini-3-flash as primary", () => {
-    // #given - multimodal-looker agent requirement
-    const multimodalLooker = AGENT_MODEL_REQUIREMENTS["multimodal-looker"]
-
-    // #when - accessing multimodal-looker requirement
-    // #then - fallbackChain exists with gemini-3-flash as first entry
-    expect(multimodalLooker).toBeDefined()
-    expect(multimodalLooker.fallbackChain).toBeArray()
-    expect(multimodalLooker.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = multimodalLooker.fallbackChain[0]
-    expect(primary.providers[0]).toBe("google")
-    expect(primary.model).toBe("gemini-3-flash")
-  })
-
-  test("prometheus has valid fallbackChain with claude-opus-4-5 as primary", () => {
-    // #given - prometheus agent requirement
-    const prometheus = AGENT_MODEL_REQUIREMENTS["prometheus"]
-
-    // #when - accessing Prometheus requirement
-    // #then - fallbackChain exists with claude-opus-4-5 as first entry
-    expect(prometheus).toBeDefined()
-    expect(prometheus.fallbackChain).toBeArray()
-    expect(prometheus.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = prometheus.fallbackChain[0]
-    expect(primary.model).toBe("claude-opus-4-5")
-    expect(primary.providers[0]).toBe("anthropic")
-    expect(primary.variant).toBe("max")
-  })
-
-  test("metis has valid fallbackChain with claude-opus-4-5 as primary", () => {
-    // #given - metis agent requirement
-    const metis = AGENT_MODEL_REQUIREMENTS["metis"]
-
-    // #when - accessing Metis requirement
-    // #then - fallbackChain exists with claude-opus-4-5 as first entry
-    expect(metis).toBeDefined()
-    expect(metis.fallbackChain).toBeArray()
-    expect(metis.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = metis.fallbackChain[0]
-    expect(primary.model).toBe("claude-opus-4-5")
-    expect(primary.providers[0]).toBe("anthropic")
-    expect(primary.variant).toBe("max")
-  })
-
-  test("momus has valid fallbackChain with gpt-5.2 as primary", () => {
-    // #given - momus agent requirement
-    const momus = AGENT_MODEL_REQUIREMENTS["momus"]
-
-    // #when - accessing Momus requirement
-    // #then - fallbackChain exists with gpt-5.2 as first entry, variant medium
-    expect(momus).toBeDefined()
-    expect(momus.fallbackChain).toBeArray()
-    expect(momus.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = momus.fallbackChain[0]
-    expect(primary.model).toBe("gpt-5.2")
-    expect(primary.variant).toBe("medium")
-    expect(primary.providers[0]).toBe("openai")
-  })
-
-  test("atlas has valid fallbackChain with claude-sonnet-4-5 as primary", () => {
-    // #given - atlas agent requirement
-    const atlas = AGENT_MODEL_REQUIREMENTS["atlas"]
-
-    // #when - accessing Atlas requirement
-    // #then - fallbackChain exists with claude-sonnet-4-5 as first entry
-    expect(atlas).toBeDefined()
-    expect(atlas.fallbackChain).toBeArray()
-    expect(atlas.fallbackChain.length).toBeGreaterThan(0)
-
-    const primary = atlas.fallbackChain[0]
-    expect(primary.model).toBe("claude-sonnet-4-5")
-    expect(primary.providers[0]).toBe("anthropic")
-  })
-
-  test("all 9 builtin agents have valid fallbackChain arrays", () => {
-    // #given - list of 9 agent names
+  test("all 3 builtin agents have valid fallbackChain arrays", () => {
+    // #given - list of 3 agent names
     const expectedAgents = [
       "sisyphus",
       "oracle",
-      "librarian",
       "explore",
-      "multimodal-looker",
-      "prometheus",
-      "metis",
-      "momus",
-      "atlas",
     ]
 
     // #when - checking AGENT_MODEL_REQUIREMENTS
     const definedAgents = Object.keys(AGENT_MODEL_REQUIREMENTS)
 
     // #then - all agents present with valid fallbackChain
-    expect(definedAgents).toHaveLength(9)
+    expect(definedAgents).toHaveLength(3)
     for (const agent of expectedAgents) {
       const requirement = AGENT_MODEL_REQUIREMENTS[agent]
       expect(requirement).toBeDefined()

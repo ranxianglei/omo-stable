@@ -176,25 +176,25 @@ describe("generateModelConfig", () => {
       expect(result).toMatchSnapshot()
     })
 
-    test("uses ZAI model for librarian when only ZAI is available", () => {
+    test("uses ZAI model for sisyphus when only ZAI is available", () => {
       // #given only ZAI is available
       const config = createConfig({ hasZaiCodingPlan: true })
 
       // #when generateModelConfig is called
       const result = generateModelConfig(config)
 
-      // #then should use ZAI_MODEL for librarian
+      // #then should use ZAI model for sisyphus
       expect(result).toMatchSnapshot()
     })
 
-    test("uses ZAI model for librarian with isMax20 flag", () => {
+    test("uses ZAI model for sisyphus with isMax20 flag", () => {
       // #given ZAI is available with Max 20 plan
       const config = createConfig({ hasZaiCodingPlan: true, isMax20: true })
 
       // #when generateModelConfig is called
       const result = generateModelConfig(config)
 
-      // #then should use ZAI_MODEL for librarian
+      // #then should use ZAI model for sisyphus
       expect(result).toMatchSnapshot()
     })
   })
@@ -228,7 +228,7 @@ describe("generateModelConfig", () => {
       expect(result).toMatchSnapshot()
     })
 
-    test("uses Claude + ZAI combination (librarian uses ZAI)", () => {
+    test("uses Claude + ZAI combination", () => {
       // #given Claude and ZAI are available
       const config = createConfig({
         hasClaude: true,
@@ -238,7 +238,7 @@ describe("generateModelConfig", () => {
       // #when generateModelConfig is called
       const result = generateModelConfig(config)
 
-      // #then librarian should use ZAI, others use Claude
+      // #then sisyphus should use ZAI (first in its fallback chain), oracle/explore use Claude
       expect(result).toMatchSnapshot()
     })
 
@@ -267,7 +267,7 @@ describe("generateModelConfig", () => {
       // #when generateModelConfig is called
       const result = generateModelConfig(config)
 
-      // #then should prefer OpenCode Zen, but librarian uses ZAI
+      // #then should prefer OpenCode Zen, sisyphus uses ZAI
       expect(result).toMatchSnapshot()
     })
 
@@ -285,7 +285,7 @@ describe("generateModelConfig", () => {
       // #when generateModelConfig is called
       const result = generateModelConfig(config)
 
-      // #then should prefer native providers, librarian uses ZAI
+      // #then should prefer native providers, sisyphus uses ZAI
       expect(result).toMatchSnapshot()
     })
 
@@ -376,33 +376,6 @@ describe("generateModelConfig", () => {
 
       // #then Sisyphus should use sonnet (sisyphus-low)
       expect(result.agents?.sisyphus?.model).toBe("anthropic/claude-sonnet-4-5")
-    })
-  })
-
-  describe("librarian agent special cases", () => {
-    test("librarian uses ZAI when ZAI is available regardless of other providers", () => {
-      // #given ZAI and Claude are available
-      const config = createConfig({
-        hasClaude: true,
-        hasZaiCodingPlan: true,
-      })
-
-      // #when generateModelConfig is called
-      const result = generateModelConfig(config)
-
-      // #then librarian should use ZAI_MODEL
-      expect(result.agents?.librarian?.model).toBe("zai-coding-plan/glm-4.7")
-    })
-
-    test("librarian uses claude-sonnet when ZAI not available but Claude is", () => {
-      // #given only Claude is available (no ZAI)
-      const config = createConfig({ hasClaude: true })
-
-      // #when generateModelConfig is called
-      const result = generateModelConfig(config)
-
-      // #then librarian should use claude-sonnet-4-5 (third in fallback chain after ZAI and opencode/glm)
-      expect(result.agents?.librarian?.model).toBe("anthropic/claude-sonnet-4-5")
     })
   })
 

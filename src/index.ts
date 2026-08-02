@@ -26,7 +26,6 @@ import {
   createDelegateTaskRetryHook,
   createTaskResumeInfoHook,
   createStartWorkHook,
-  createAtlasHook,
   createPrometheusMdOnlyHook,
   createQuestionLabelTruncatorHook,
 } from "./hooks";
@@ -56,7 +55,6 @@ import {
   builtinTools,
   createCallOmoAgent,
   createBackgroundTools,
-  createLookAt,
   createSkillTool,
   createSkillMcpTool,
   createSlashcommandTool,
@@ -194,10 +192,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
 
   const backgroundManager = new BackgroundManager(ctx, pluginConfig.background_task);
 
-  const atlasHook = isHookEnabled("atlas")
-    ? createAtlasHook(ctx, { directory: ctx.directory, backgroundManager })
-    : null;
-
   initTaskToastManager(ctx.client);
 
   const todoContinuationEnforcer = isHookEnabled("todo-continuation-enforcer")
@@ -217,11 +211,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
   const backgroundTools = createBackgroundTools(backgroundManager, ctx.client);
 
   const callOmoAgent = createCallOmoAgent(ctx, backgroundManager);
-  const isMultimodalLookerEnabled = !includesCaseInsensitive(
-    pluginConfig.disabled_agents ?? [],
-    "multimodal-looker"
-  );
-  const lookAt = isMultimodalLookerEnabled ? createLookAt(ctx) : null;
   const delegateTask = createDelegateTask({
     manager: backgroundManager,
     client: ctx.client,
@@ -291,7 +280,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       ...builtinTools,
       ...backgroundTools,
       call_omo_agent: callOmoAgent,
-      ...(lookAt ? { look_at: lookAt } : {}),
       delegate_task: delegateTask,
       skill: skillTool,
       skill_mcp: skillMcpTool,
@@ -402,7 +390,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await agentUsageReminder?.event(input);
       await interactiveBashSession?.event(input);
       await ralphLoop?.event(input);
-      await atlasHook?.handler(input);
 
       const { event } = input;
       const props = event.properties as Record<string, unknown> | undefined;
@@ -477,20 +464,19 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await directoryReadmeInjector?.["tool.execute.before"]?.(input, output);
       await rulesInjector?.["tool.execute.before"]?.(input, output);
       await prometheusMdOnly?.["tool.execute.before"]?.(input, output);
-      await atlasHook?.["tool.execute.before"]?.(input, output);
 
       if (input.tool === "task") {
         const args = output.args as Record<string, unknown>;
         const subagentType = args.subagent_type as string;
-        const isExploreOrLibrarian = includesCaseInsensitive(
-          ["explore", "librarian"],
+        const isExplore = includesCaseInsensitive(
+          ["explore"],
           subagentType ?? ""
         );
 
         args.tools = {
           ...(args.tools as Record<string, boolean> | undefined),
           delegate_task: false,
-          ...(isExploreOrLibrarian ? { call_omo_agent: false } : {}),
+          ...(isExplore ? { call_omo_agent: false } : {}),
         };
       }
 
@@ -558,7 +544,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await interactiveBashSession?.["tool.execute.after"](input, output);
 await editErrorRecovery?.["tool.execute.after"](input, output);
         await delegateTaskRetry?.["tool.execute.after"](input, output);
-        await atlasHook?.["tool.execute.after"]?.(input, output);
       await taskResumeInfo["tool.execute.after"](input, output);
     },
   };

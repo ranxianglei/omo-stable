@@ -1,45 +1,19 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
-import type { BuiltinAgentName, AgentOverrideConfig, AgentOverrides, AgentFactory, AgentPromptMetadata } from "./types"
+import type { BuiltinAgentName, AgentOverrideConfig, AgentOverrides, AgentFactory } from "./types"
 import type { CategoriesConfig, CategoryConfig, GitMasterConfig } from "../config/schema"
 import { createSisyphusAgent } from "./sisyphus"
-import { createOracleAgent, ORACLE_PROMPT_METADATA } from "./oracle"
-import { createLibrarianAgent, LIBRARIAN_PROMPT_METADATA } from "./librarian"
-import { createExploreAgent, EXPLORE_PROMPT_METADATA } from "./explore"
-import { createMultimodalLookerAgent, MULTIMODAL_LOOKER_PROMPT_METADATA } from "./multimodal-looker"
-import { createMetisAgent } from "./metis"
-import { createAtlasAgent } from "./atlas"
-import { createMomusAgent } from "./momus"
-import type { AvailableAgent, AvailableCategory, AvailableSkill } from "./dynamic-agent-prompt-builder"
+import { createOracleAgent } from "./oracle"
+import { createExploreAgent } from "./explore"
 import { deepMerge, fetchAvailableModels, resolveModelWithFallback, AGENT_MODEL_REQUIREMENTS, findCaseInsensitive, includesCaseInsensitive } from "../shared"
-import { DEFAULT_CATEGORIES, CATEGORY_DESCRIPTIONS } from "../tools/delegate-task/constants"
+import { DEFAULT_CATEGORIES } from "../tools/delegate-task/constants"
 import { resolveMultipleSkills } from "../features/opencode-skill-loader/skill-content"
-import { createBuiltinSkills } from "../features/builtin-skills"
-import type { LoadedSkill, SkillScope } from "../features/opencode-skill-loader/types"
 
 type AgentSource = AgentFactory | AgentConfig
 
 const agentSources: Record<BuiltinAgentName, AgentSource> = {
   sisyphus: createSisyphusAgent,
   oracle: createOracleAgent,
-  librarian: createLibrarianAgent,
   explore: createExploreAgent,
-  "multimodal-looker": createMultimodalLookerAgent,
-  metis: createMetisAgent,
-  momus: createMomusAgent,
-  // Note: Atlas is handled specially in createBuiltinAgents()
-  // because it needs OrchestratorContext, not just a model string
-  atlas: createAtlasAgent as unknown as AgentFactory,
-}
-
-/**
- * Metadata for each agent, used to build Sisyphus's dynamic prompt sections
- * (Delegation Table, Tool Selection, Key Triggers, etc.)
- */
-const agentMetadata: Partial<Record<BuiltinAgentName, AgentPromptMetadata>> = {
-  oracle: ORACLE_PROMPT_METADATA,
-  librarian: LIBRARIAN_PROMPT_METADATA,
-  explore: EXPLORE_PROMPT_METADATA,
-  "multimodal-looker": MULTIMODAL_LOOKER_PROMPT_METADATA,
 }
 
 function isFactory(source: AgentSource): source is AgentFactory {
@@ -132,12 +106,6 @@ function mergeAgentConfig(
   return merged
 }
 
-function mapScopeToLocation(scope: SkillScope): AvailableSkill["location"] {
-  if (scope === "user" || scope === "opencode") return "user"
-  if (scope === "project" || scope === "opencode-project") return "project"
-  return "plugin"
-}
-
 export async function createBuiltinAgents(
   disabledAgents: string[] = [],
   agentOverrides: AgentOverrides = {},
@@ -145,7 +113,6 @@ export async function createBuiltinAgents(
   systemDefaultModel?: string,
   categories?: CategoriesConfig,
   gitMasterConfig?: GitMasterConfig,
-  discoveredSkills: LoadedSkill[] = [],
   client?: any
 ): Promise<Record<string, AgentConfig>> {
   if (!systemDefaultModel) {
@@ -156,46 +123,20 @@ export async function createBuiltinAgents(
   const availableModels = client ? await fetchAvailableModels(client) : new Set<string>()
 
   const result: Record<string, AgentConfig> = {}
-  const availableAgents: AvailableAgent[] = []
 
   const mergedCategories = categories
     ? { ...DEFAULT_CATEGORIES, ...categories }
     : DEFAULT_CATEGORIES
 
-  const availableCategories: AvailableCategory[] = Object.entries(mergedCategories).map(([name]) => ({
-    name,
-    description: categories?.[name]?.description ?? CATEGORY_DESCRIPTIONS[name] ?? "General tasks",
-  }))
+  for (const [name, source] of Object.entries(agentSources)) {
+    const agentName = name as BuiltinAgentName
 
-  const builtinSkills = createBuiltinSkills()
-  const builtinSkillNames = new Set(builtinSkills.map(s => s.name))
-
-  const builtinAvailable: AvailableSkill[] = builtinSkills.map((skill) => ({
-    name: skill.name,
-    description: skill.description,
-    location: "plugin" as const,
-  }))
-
-  const discoveredAvailable: AvailableSkill[] = discoveredSkills
-    .filter(s => !builtinSkillNames.has(s.name))
-    .map((skill) => ({
-      name: skill.name,
-      description: skill.definition.description ?? "",
-      location: mapScopeToLocation(skill.scope),
-    }))
-
-  const availableSkills: AvailableSkill[] = [...builtinAvailable, ...discoveredAvailable]
-
-   for (const [name, source] of Object.entries(agentSources)) {
-     const agentName = name as BuiltinAgentName
-
-     if (agentName === "sisyphus") continue
-     if (agentName === "atlas") continue
-     if (includesCaseInsensitive(disabledAgents, agentName)) continue
+    if (agentName === "sisyphus") continue
+    if (includesCaseInsensitive(disabledAgents, agentName)) continue
 
     const override = findCaseInsensitive(agentOverrides, agentName)
     const requirement = AGENT_MODEL_REQUIREMENTS[agentName]
-    
+
     // Use resolver to determine model
     const { model, variant: resolvedVariant } = resolveModelWithFallback({
       userModel: override?.model,
@@ -205,7 +146,7 @@ export async function createBuiltinAgents(
     })
 
     let config = buildAgent(source, model, mergedCategories, gitMasterConfig)
-    
+
     // Apply variant from override or resolved fallback chain
     if (override?.variant) {
       config = { ...config, variant: override.variant }
@@ -213,31 +154,17 @@ export async function createBuiltinAgents(
       config = { ...config, variant: resolvedVariant }
     }
 
-    if (agentName === "librarian" && directory && config.prompt) {
-      const envContext = createEnvContext()
-      config = { ...config, prompt: config.prompt + envContext }
-    }
-
     if (override) {
       config = mergeAgentConfig(config, override)
     }
 
     result[name] = config
-
-    const metadata = agentMetadata[agentName]
-    if (metadata) {
-      availableAgents.push({
-        name: agentName,
-        description: config.description ?? "",
-        metadata,
-      })
-    }
   }
 
-   if (!disabledAgents.includes("sisyphus")) {
-     const sisyphusOverride = agentOverrides["sisyphus"]
-     const sisyphusRequirement = AGENT_MODEL_REQUIREMENTS["sisyphus"]
-    
+  if (!disabledAgents.includes("sisyphus")) {
+    const sisyphusOverride = agentOverrides["sisyphus"]
+    const sisyphusRequirement = AGENT_MODEL_REQUIREMENTS["sisyphus"]
+
     // Use resolver to determine model
     const { model: sisyphusModel, variant: sisyphusResolvedVariant } = resolveModelWithFallback({
       userModel: sisyphusOverride?.model,
@@ -247,7 +174,7 @@ export async function createBuiltinAgents(
     })
 
     let sisyphusConfig = createSisyphusAgent(sisyphusModel)
-    
+
     // Apply variant from override or resolved fallback chain
     if (sisyphusOverride?.variant) {
       sisyphusConfig = { ...sisyphusConfig, variant: sisyphusOverride.variant }
@@ -264,41 +191,8 @@ export async function createBuiltinAgents(
       sisyphusConfig = mergeAgentConfig(sisyphusConfig, sisyphusOverride)
     }
 
-     result["sisyphus"] = sisyphusConfig
-   }
+    result["sisyphus"] = sisyphusConfig
+  }
 
-   if (!disabledAgents.includes("atlas")) {
-     const orchestratorOverride = agentOverrides["atlas"]
-     const atlasRequirement = AGENT_MODEL_REQUIREMENTS["atlas"]
-    
-    // Use resolver to determine model
-    const { model: atlasModel, variant: atlasResolvedVariant } = resolveModelWithFallback({
-      userModel: orchestratorOverride?.model,
-      fallbackChain: atlasRequirement?.fallbackChain,
-      availableModels,
-      systemDefaultModel,
-    })
-    
-    let orchestratorConfig = createAtlasAgent({
-      model: atlasModel,
-      availableAgents,
-      availableSkills,
-      userCategories: categories,
-    })
-    
-    // Apply variant from override or resolved fallback chain
-    if (orchestratorOverride?.variant) {
-      orchestratorConfig = { ...orchestratorConfig, variant: orchestratorOverride.variant }
-    } else if (atlasResolvedVariant) {
-      orchestratorConfig = { ...orchestratorConfig, variant: atlasResolvedVariant }
-    }
-
-    if (orchestratorOverride) {
-      orchestratorConfig = mergeAgentConfig(orchestratorConfig, orchestratorOverride)
-    }
-
-     result["atlas"] = orchestratorConfig
-   }
-
-   return result
- }
+  return result
+}

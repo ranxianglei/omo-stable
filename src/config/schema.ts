@@ -18,14 +18,8 @@ const AgentPermissionSchema = z.object({
 
 export const BuiltinAgentNameSchema = z.enum([
   "sisyphus",
-  "prometheus",
   "oracle",
-  "librarian",
   "explore",
-  "multimodal-looker",
-  "metis",
-  "momus",
-  "atlas",
 ])
 
 export const BuiltinSkillNameSchema = z.enum([
@@ -40,14 +34,8 @@ export const OverridableAgentNameSchema = z.enum([
   "sisyphus",
   "sisyphus-junior",
   "OpenCode-Builder",
-  "prometheus",
-  "metis",
-  "momus",
   "oracle",
-  "librarian",
   "explore",
-  "multimodal-looker",
-  "atlas",
 ])
 
 export const AgentNameSchema = BuiltinAgentNameSchema
@@ -81,7 +69,6 @@ export const HookNameSchema = z.enum([
   "delegate-task-retry",
   "prometheus-md-only",
   "start-work",
-  "atlas",
 ])
 
 export const BuiltinCommandNameSchema = z.enum([
@@ -118,14 +105,8 @@ export const AgentOverridesSchema = z.object({
   sisyphus: AgentOverrideConfigSchema.optional(),
   "sisyphus-junior": AgentOverrideConfigSchema.optional(),
   "OpenCode-Builder": AgentOverrideConfigSchema.optional(),
-  prometheus: AgentOverrideConfigSchema.optional(),
-  metis: AgentOverrideConfigSchema.optional(),
-  momus: AgentOverrideConfigSchema.optional(),
   oracle: AgentOverrideConfigSchema.optional(),
-  librarian: AgentOverrideConfigSchema.optional(),
   explore: AgentOverrideConfigSchema.optional(),
-  "multimodal-looker": AgentOverrideConfigSchema.optional(),
-  atlas: AgentOverrideConfigSchema.optional(),
 })
 
 export const ClaudeCodeConfigSchema = z.object({

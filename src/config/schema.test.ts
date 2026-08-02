@@ -456,17 +456,17 @@ describe("Sisyphus-Junior agent override", () => {
     }
   })
 
-  test("schema accepts lowercase agent names (sisyphus, atlas, prometheus)", () => {
+  test("schema accepts lowercase agent names (sisyphus, oracle, explore)", () => {
     // #given
     const config = {
       agents: {
         sisyphus: {
           temperature: 0.1,
         },
-        atlas: {
+        oracle: {
           temperature: 0.2,
         },
-        prometheus: {
+        explore: {
           temperature: 0.3,
         },
       },
@@ -479,32 +479,8 @@ describe("Sisyphus-Junior agent override", () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.agents?.sisyphus?.temperature).toBe(0.1)
-      expect(result.data.agents?.atlas?.temperature).toBe(0.2)
-      expect(result.data.agents?.prometheus?.temperature).toBe(0.3)
-    }
-  })
-
-  test("schema accepts lowercase metis and momus agent names", () => {
-    // #given
-    const config = {
-      agents: {
-        metis: {
-          category: "ultrabrain",
-        },
-        momus: {
-          category: "quick",
-        },
-      },
-    }
-
-    // #when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
-
-    // #then
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.agents?.metis?.category).toBe("ultrabrain")
-      expect(result.data.agents?.momus?.category).toBe("quick")
+      expect(result.data.agents?.oracle?.temperature).toBe(0.2)
+      expect(result.data.agents?.explore?.temperature).toBe(0.3)
     }
   })
 })

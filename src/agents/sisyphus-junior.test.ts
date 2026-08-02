@@ -66,7 +66,7 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
       const result = createSisyphusJuniorAgentWithOverrides(override)
 
       // #then
-      expect(result.prompt).toContain("You work ALONE")
+      expect(result.prompt).toContain("focused task executor")
       expect(result.prompt).toContain("Extra instructions here")
     })
   })
@@ -133,7 +133,7 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
       const result = createSisyphusJuniorAgentWithOverrides(override)
 
       // #then
-      expect(result.prompt).toContain("You work ALONE")
+      expect(result.prompt).toContain("focused task executor")
       expect(result.prompt).not.toBe("Completely new prompt that replaces everything")
     })
   })
@@ -211,8 +211,8 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
 
       // #then
       expect(result.prompt).toContain("Sisyphus-Junior")
-      expect(result.prompt).toContain("You work ALONE")
-      expect(result.prompt).toContain("BLOCKED ACTIONS")
+      expect(result.prompt).toContain("focused task executor")
+      expect(result.prompt).toContain("Verify before finishing")
     })
 
     test("prompt_append is added after base prompt", () => {
@@ -223,7 +223,7 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
       const result = createSisyphusJuniorAgentWithOverrides(override)
 
       // #then
-      const baseEndIndex = result.prompt!.indexOf("Dense > verbose.")
+      const baseEndIndex = result.prompt!.indexOf("Verify before finishing (typecheck/build).")
       const appendIndex = result.prompt!.indexOf("CUSTOM_MARKER_FOR_TEST")
       expect(baseEndIndex).not.toBe(-1) // Guard: anchor text must exist in base prompt
       expect(appendIndex).toBeGreaterThan(baseEndIndex)
