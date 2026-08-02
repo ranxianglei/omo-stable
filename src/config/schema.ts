@@ -67,13 +67,10 @@ export const HookNameSchema = z.enum([
   "auto-slash-command",
   "edit-error-recovery",
   "delegate-task-retry",
-  "prometheus-md-only",
-  "start-work",
 ])
 
 export const BuiltinCommandNameSchema = z.enum([
   "init-deep",
-  "start-work",
 ])
 
 export const AgentOverrideConfigSchema = z.object({

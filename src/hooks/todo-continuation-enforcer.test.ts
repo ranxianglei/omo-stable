@@ -1010,52 +1010,6 @@ describe("todo-continuation-enforcer", () => {
     expect(promptCalls).toHaveLength(0)
   })
 
-  test("should skip injection when prometheus agent is after compaction", async () => {
-    // #given - prometheus session that was compacted
-    const sessionID = "main-prometheus-compacted"
-    setMainSession(sessionID)
-
-    const mockMessagesPrometheusCompacted = [
-      { info: { id: "msg-1", role: "user", agent: "prometheus" } },
-      { info: { id: "msg-2", role: "assistant", agent: "prometheus" } },
-      { info: { id: "msg-3", role: "assistant", agent: "compaction" } },
-    ]
-
-    const mockInput = {
-      client: {
-        session: {
-          todo: async () => ({
-            data: [{ id: "1", content: "Task 1", status: "pending", priority: "high" }],
-          }),
-          messages: async () => ({ data: mockMessagesPrometheusCompacted }),
-          prompt: async (opts: any) => {
-            promptCalls.push({
-              sessionID: opts.path.id,
-              agent: opts.body.agent,
-              model: opts.body.model,
-              text: opts.body.parts[0].text,
-            })
-            return {}
-          },
-        },
-        tui: { showToast: async () => ({}) },
-      },
-      directory: "/tmp/test",
-    } as any
-
-    const hook = createHook(mockInput, {})
-
-    // #when - session goes idle
-    await hook.handler({
-      event: { type: "session.idle", properties: { sessionID } },
-    })
-
-    await new Promise(r => setTimeout(r, 3000))
-
-    // #then - no continuation (prometheus found after filtering compaction, prometheus is in skipAgents)
-    expect(promptCalls).toHaveLength(0)
-  })
-
   test("should inject when agent info is undefined but skipAgents is empty", async () => {
     // #given - session with no agent info but skipAgents is empty
     const sessionID = "main-no-agent-no-skip"

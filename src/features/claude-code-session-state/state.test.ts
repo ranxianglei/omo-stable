@@ -15,7 +15,7 @@ describe("claude-code-session-state", () => {
     _resetForTesting()
     clearSessionAgent("test-session-1")
     clearSessionAgent("test-session-2")
-    clearSessionAgent("test-prometheus-session")
+    clearSessionAgent("test-agent-session")
   })
 
   describe("setSessionAgent", () => {
@@ -100,24 +100,24 @@ describe("claude-code-session-state", () => {
     })
   })
 
-  describe("prometheus-md-only integration scenario", () => {
-    test("should correctly identify Prometheus agent for permission checks", () => {
-      // #given - Prometheus session
-      const sessionID = "test-prometheus-session"
-      const prometheusAgent = "Prometheus (Planner)"
+  describe("agent session state storage", () => {
+    test("should correctly store and retrieve agent name", () => {
+      // #given - a session with an agent
+      const sessionID = "test-agent-session"
+      const agentName = "custom-agent"
 
       // #when - agent is set (simulating chat.message hook)
-      setSessionAgent(sessionID, prometheusAgent)
+      setSessionAgent(sessionID, agentName)
 
-      // #then - getSessionAgent returns correct agent for prometheus-md-only hook
+      // #then - getSessionAgent returns the stored agent
       const agent = getSessionAgent(sessionID)
-      expect(agent).toBe("Prometheus (Planner)")
-      expect(["Prometheus (Planner)"].includes(agent!)).toBe(true)
+      expect(agent).toBe("custom-agent")
+      expect(["custom-agent"].includes(agent!)).toBe(true)
     })
 
     test("should return undefined when agent not set (bug scenario)", () => {
       // #given - session exists but no agent set (the bug)
-      const sessionID = "test-prometheus-session"
+      const sessionID = "test-agent-session"
 
       // #when / #then - this is the bug: agent is undefined
       expect(getSessionAgent(sessionID)).toBeUndefined()
