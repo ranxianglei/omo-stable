@@ -246,13 +246,7 @@ export async function createBuiltinAgents(
       systemDefaultModel,
     })
 
-    let sisyphusConfig = createSisyphusAgent(
-      sisyphusModel,
-      availableAgents,
-      undefined,
-      availableSkills,
-      availableCategories
-    )
+    let sisyphusConfig = createSisyphusAgent(sisyphusModel)
     
     // Apply variant from override or resolved fallback chain
     if (sisyphusOverride?.variant) {
