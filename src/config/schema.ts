@@ -18,14 +18,8 @@ const AgentPermissionSchema = z.object({
 
 export const BuiltinAgentNameSchema = z.enum([
   "sisyphus",
-  "prometheus",
   "oracle",
-  "librarian",
   "explore",
-  "multimodal-looker",
-  "metis",
-  "momus",
-  "atlas",
 ])
 
 export const BuiltinSkillNameSchema = z.enum([
@@ -40,21 +34,14 @@ export const OverridableAgentNameSchema = z.enum([
   "sisyphus",
   "sisyphus-junior",
   "OpenCode-Builder",
-  "prometheus",
-  "metis",
-  "momus",
   "oracle",
-  "librarian",
   "explore",
-  "multimodal-looker",
-  "atlas",
 ])
 
 export const AgentNameSchema = BuiltinAgentNameSchema
 
 export const HookNameSchema = z.enum([
   "todo-continuation-enforcer",
-  "context-window-monitor",
   "session-recovery",
   "session-notification",
   "comment-checker",
@@ -64,7 +51,6 @@ export const HookNameSchema = z.enum([
   "directory-readme-injector",
   "empty-task-response-detector",
   "think-mode",
-  "anthropic-context-window-limit-recovery",
   "rules-injector",
   "background-notification",
   "auto-update-checker",
@@ -77,19 +63,14 @@ export const HookNameSchema = z.enum([
   "thinking-block-validator",
   "ralph-loop",
 
-  "compaction-context-injector",
   "claude-code-hooks",
   "auto-slash-command",
   "edit-error-recovery",
   "delegate-task-retry",
-  "prometheus-md-only",
-  "start-work",
-  "atlas",
 ])
 
 export const BuiltinCommandNameSchema = z.enum([
   "init-deep",
-  "start-work",
 ])
 
 export const AgentOverrideConfigSchema = z.object({
@@ -121,14 +102,8 @@ export const AgentOverridesSchema = z.object({
   sisyphus: AgentOverrideConfigSchema.optional(),
   "sisyphus-junior": AgentOverrideConfigSchema.optional(),
   "OpenCode-Builder": AgentOverrideConfigSchema.optional(),
-  prometheus: AgentOverrideConfigSchema.optional(),
-  metis: AgentOverrideConfigSchema.optional(),
-  momus: AgentOverrideConfigSchema.optional(),
   oracle: AgentOverrideConfigSchema.optional(),
-  librarian: AgentOverrideConfigSchema.optional(),
   explore: AgentOverrideConfigSchema.optional(),
-  "multimodal-looker": AgentOverrideConfigSchema.optional(),
-  atlas: AgentOverrideConfigSchema.optional(),
 })
 
 export const ClaudeCodeConfigSchema = z.object({

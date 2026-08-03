@@ -1,7 +1,6 @@
 import type { Plugin } from "@opencode-ai/plugin";
 import {
   createTodoContinuationEnforcer,
-  createContextWindowMonitorHook,
   createSessionRecoveryHook,
   createSessionNotification,
   createCommentCheckerHooks,
@@ -11,9 +10,7 @@ import {
   createEmptyTaskResponseDetectorHook,
   createThinkModeHook,
   createClaudeCodeHooksHook,
-  createAnthropicContextWindowLimitRecoveryHook,
 
-  createCompactionContextInjector,
   createRulesInjectorHook,
   createBackgroundNotificationHook,
   createAutoUpdateCheckerHook,
@@ -28,9 +25,6 @@ import {
   createEditErrorRecoveryHook,
   createDelegateTaskRetryHook,
   createTaskResumeInfoHook,
-  createStartWorkHook,
-  createAtlasHook,
-  createPrometheusMdOnlyHook,
   createQuestionLabelTruncatorHook,
 } from "./hooks";
 import {
@@ -59,7 +53,6 @@ import {
   builtinTools,
   createCallOmoAgent,
   createBackgroundTools,
-  createLookAt,
   createSkillTool,
   createSkillMcpTool,
   createSlashcommandTool,
@@ -91,9 +84,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
 
   const modelCacheState = createModelCacheState();
 
-  const contextWindowMonitor = isHookEnabled("context-window-monitor")
-    ? createContextWindowMonitorHook(ctx)
-    : null;
   const sessionRecovery = isHookEnabled("session-recovery")
     ? createSessionRecoveryHook(ctx, { experimental: pluginConfig.experimental })
     : null;
@@ -142,16 +132,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     },
     contextCollector
   );
-  const anthropicContextWindowLimitRecovery = isHookEnabled(
-    "anthropic-context-window-limit-recovery"
-  )
-    ? createAnthropicContextWindowLimitRecoveryHook(ctx, {
-        experimental: pluginConfig.experimental,
-      })
-    : null;
-  const compactionContextInjector = isHookEnabled("compaction-context-injector")
-    ? createCompactionContextInjector()
-    : undefined;
   const rulesInjector = isHookEnabled("rules-injector")
     ? createRulesInjectorHook(ctx)
     : null;
@@ -196,23 +176,11 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     ? createDelegateTaskRetryHook(ctx)
     : null;
 
-  const startWork = isHookEnabled("start-work")
-    ? createStartWorkHook(ctx)
-    : null;
-
-  const prometheusMdOnly = isHookEnabled("prometheus-md-only")
-    ? createPrometheusMdOnlyHook(ctx)
-    : null;
-
   const questionLabelTruncator = createQuestionLabelTruncatorHook();
 
   const taskResumeInfo = createTaskResumeInfoHook();
 
   const backgroundManager = new BackgroundManager(ctx, pluginConfig.background_task);
-
-  const atlasHook = isHookEnabled("atlas")
-    ? createAtlasHook(ctx, { directory: ctx.directory, backgroundManager })
-    : null;
 
   initTaskToastManager(ctx.client);
 
@@ -233,11 +201,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
   const backgroundTools = createBackgroundTools(backgroundManager, ctx.client);
 
   const callOmoAgent = createCallOmoAgent(ctx, backgroundManager);
-  const isMultimodalLookerEnabled = !includesCaseInsensitive(
-    pluginConfig.disabled_agents ?? [],
-    "multimodal-looker"
-  );
-  const lookAt = isMultimodalLookerEnabled ? createLookAt(ctx) : null;
   const delegateTask = createDelegateTask({
     manager: backgroundManager,
     client: ctx.client,
@@ -307,7 +270,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       ...builtinTools,
       ...backgroundTools,
       call_omo_agent: callOmoAgent,
-      ...(lookAt ? { look_at: lookAt } : {}),
       delegate_task: delegateTask,
       skill: skillTool,
       skill_mcp: skillMcpTool,
@@ -334,7 +296,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await keywordDetector?.["chat.message"]?.(input, output);
       await claudeCodeHooks["chat.message"]?.(input, output);
       await autoSlashCommand?.["chat.message"]?.(input, output);
-      await startWork?.["chat.message"]?.(input, output);
 
       if (ralphLoop) {
         const parts = (
@@ -411,16 +372,13 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await backgroundNotificationHook?.event(input);
       await sessionNotification?.(input);
       await todoContinuationEnforcer?.handler(input);
-      await contextWindowMonitor?.event(input);
       await directoryAgentsInjector?.event(input);
       await directoryReadmeInjector?.event(input);
       await rulesInjector?.event(input);
       await thinkMode?.event(input);
-      await anthropicContextWindowLimitRecovery?.event(input);
       await agentUsageReminder?.event(input);
       await interactiveBashSession?.event(input);
       await ralphLoop?.event(input);
-      await atlasHook?.handler(input);
 
       const { event } = input;
       const props = event.properties as Record<string, unknown> | undefined;
@@ -494,21 +452,19 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await directoryAgentsInjector?.["tool.execute.before"]?.(input, output);
       await directoryReadmeInjector?.["tool.execute.before"]?.(input, output);
       await rulesInjector?.["tool.execute.before"]?.(input, output);
-      await prometheusMdOnly?.["tool.execute.before"]?.(input, output);
-      await atlasHook?.["tool.execute.before"]?.(input, output);
 
       if (input.tool === "task") {
         const args = output.args as Record<string, unknown>;
         const subagentType = args.subagent_type as string;
-        const isExploreOrLibrarian = includesCaseInsensitive(
-          ["explore", "librarian"],
+        const isExplore = includesCaseInsensitive(
+          ["explore"],
           subagentType ?? ""
         );
 
         args.tools = {
           ...(args.tools as Record<string, boolean> | undefined),
           delegate_task: false,
-          ...(isExploreOrLibrarian ? { call_omo_agent: false } : {}),
+          ...(isExplore ? { call_omo_agent: false } : {}),
         };
       }
 
@@ -567,7 +523,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     "tool.execute.after": async (input, output) => {
       await claudeCodeHooks["tool.execute.after"](input, output);
       await toolOutputTruncator?.["tool.execute.after"](input, output);
-      await contextWindowMonitor?.["tool.execute.after"](input, output);
       await commentChecker?.["tool.execute.after"](input, output);
       await directoryAgentsInjector?.["tool.execute.after"](input, output);
       await directoryReadmeInjector?.["tool.execute.after"](input, output);
@@ -577,7 +532,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       await interactiveBashSession?.["tool.execute.after"](input, output);
 await editErrorRecovery?.["tool.execute.after"](input, output);
         await delegateTaskRetry?.["tool.execute.after"](input, output);
-        await atlasHook?.["tool.execute.after"]?.(input, output);
       await taskResumeInfo["tool.execute.after"](input, output);
     },
   };

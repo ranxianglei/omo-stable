@@ -17,17 +17,11 @@ const EXPLORATION_AGENT_DENYLIST: Record<string, boolean> = {
 const AGENT_RESTRICTIONS: Record<string, Record<string, boolean>> = {
   explore: EXPLORATION_AGENT_DENYLIST,
 
-  librarian: EXPLORATION_AGENT_DENYLIST,
-
   oracle: {
     write: false,
     edit: false,
     task: false,
     delegate_task: false,
-  },
-
-  "multimodal-looker": {
-    read: true,
   },
 
   "sisyphus-junior": {

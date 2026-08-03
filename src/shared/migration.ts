@@ -9,28 +9,6 @@ export const AGENT_NAME_MAP: Record<string, string> = {
   Sisyphus: "sisyphus",
   sisyphus: "sisyphus",
 
-  // Prometheus variants → "prometheus"
-  "OmO-Plan": "prometheus",
-  "omo-plan": "prometheus",
-  "Planner-Sisyphus": "prometheus",
-  "planner-sisyphus": "prometheus",
-  "Prometheus (Planner)": "prometheus",
-  prometheus: "prometheus",
-
-  // Atlas variants → "atlas"
-  "orchestrator-sisyphus": "atlas",
-  Atlas: "atlas",
-  atlas: "atlas",
-
-  // Metis variants → "metis"
-  "plan-consultant": "metis",
-  "Metis (Plan Consultant)": "metis",
-  metis: "metis",
-
-  // Momus variants → "momus"
-  "Momus (Plan Reviewer)": "momus",
-  momus: "momus",
-
   // Sisyphus-Junior → "sisyphus-junior"
   "Sisyphus-Junior": "sisyphus-junior",
   "sisyphus-junior": "sisyphus-junior",
@@ -38,34 +16,27 @@ export const AGENT_NAME_MAP: Record<string, string> = {
   // Already lowercase - passthrough
   build: "build",
   oracle: "oracle",
-  librarian: "librarian",
   explore: "explore",
-  "multimodal-looker": "multimodal-looker",
 }
 
 export const BUILTIN_AGENT_NAMES = new Set([
   "sisyphus",           // was "Sisyphus"
   "oracle",
-  "librarian",
   "explore",
-  "multimodal-looker",
-  "metis",              // was "Metis (Plan Consultant)"
-  "momus",              // was "Momus (Plan Reviewer)"
-  "prometheus",         // was "Prometheus (Planner)"
-  "atlas",              // was "Atlas"
   "build",
 ])
 
 // Migration map: old hook names → new hook names (for backward compatibility)
 // null means the hook was removed and should be filtered out from disabled_hooks
 export const HOOK_NAME_MAP: Record<string, string | null> = {
-  // Legacy names (backward compatibility)
-  "anthropic-auto-compact": "anthropic-context-window-limit-recovery",
-  "sisyphus-orchestrator": "atlas",
-
-  // Removed hooks (v3.0.0) - will be filtered out and user warned
+  // Removed hooks - will be filtered out and user warned
+  "sisyphus-orchestrator": null,
   "preemptive-compaction": null,
   "empty-message-sanitizer": null,
+  "anthropic-auto-compact": null,
+  "context-window-monitor": null,
+  "anthropic-context-window-limit-recovery": null,
+  "compaction-context-injector": null,
 }
 
 /**

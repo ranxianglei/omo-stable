@@ -319,7 +319,7 @@ describe("generateOmoConfig - model fallback system", () => {
     expect((result.agents as Record<string, { model: string }>).sisyphus.model).toBe("opencode/big-pickle")
   })
 
-  test("uses zai-coding-plan/glm-4.7 for librarian when Z.ai available", () => {
+  test("uses native opus for sisyphus when Z.ai and Claude max20 available", () => {
     // #given user has Z.ai and Claude max20
     const config: InstallConfig = {
       hasClaude: true,
@@ -334,9 +334,7 @@ describe("generateOmoConfig - model fallback system", () => {
     // #when generating config
     const result = generateOmoConfig(config)
 
-    // #then librarian should use zai-coding-plan/glm-4.7
-    expect((result.agents as Record<string, { model: string }>).librarian.model).toBe("zai-coding-plan/glm-4.7")
-    // #then other agents should use native opus (max20 plan)
+    // #then sisyphus should use native opus (max20 plan)
     expect((result.agents as Record<string, { model: string }>).sisyphus.model).toBe("anthropic/claude-opus-4-5")
   })
 
@@ -359,8 +357,6 @@ describe("generateOmoConfig - model fallback system", () => {
     expect((result.agents as Record<string, { model: string }>).sisyphus.model).toBe("openai/gpt-5.2")
     // #then Oracle should use native OpenAI (first fallback entry)
     expect((result.agents as Record<string, { model: string }>).oracle.model).toBe("openai/gpt-5.2")
-    // #then multimodal-looker should use native OpenAI (fallback within native tier)
-    expect((result.agents as Record<string, { model: string }>)["multimodal-looker"].model).toBe("openai/gpt-5.2")
   })
 
   test("uses haiku for explore when Claude max20", () => {

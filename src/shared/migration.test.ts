@@ -17,7 +17,6 @@ describe("migrateAgentNames", () => {
     const agents = {
       omo: { model: "anthropic/claude-opus-4-5" },
       OmO: { temperature: 0.5 },
-      "OmO-Plan": { prompt: "custom prompt" },
     }
 
     // #when: Migrate agent names
@@ -26,10 +25,8 @@ describe("migrateAgentNames", () => {
     // #then: Legacy names should be migrated to lowercase
     expect(changed).toBe(true)
     expect(migrated["sisyphus"]).toEqual({ temperature: 0.5 })
-    expect(migrated["prometheus"]).toEqual({ prompt: "custom prompt" })
     expect(migrated["omo"]).toBeUndefined()
     expect(migrated["OmO"]).toBeUndefined()
-    expect(migrated["OmO-Plan"]).toBeUndefined()
   })
 
   test("preserves current agent names unchanged", () => {
@@ -54,8 +51,7 @@ describe("migrateAgentNames", () => {
     // #given: Config with mixed case agent names
     const agents = {
       SISYPHUS: { model: "test" },
-      "planner-sisyphus": { prompt: "test" },
-      "Orchestrator-Sisyphus": { model: "openai/gpt-5.2" },
+      "Sisyphus-Junior": { model: "test" },
     }
 
     // #when: Migrate agent names
@@ -63,8 +59,7 @@ describe("migrateAgentNames", () => {
 
     // #then: Case-insensitive lookup should migrate correctly
     expect(migrated["sisyphus"]).toEqual({ model: "test" })
-    expect(migrated["prometheus"]).toEqual({ prompt: "test" })
-    expect(migrated["atlas"]).toEqual({ model: "openai/gpt-5.2" })
+    expect(migrated["sisyphus-junior"]).toEqual({ model: "test" })
   })
 
   test("passes through unknown agent names unchanged", () => {
@@ -79,35 +74,6 @@ describe("migrateAgentNames", () => {
     // #then: Unknown names should pass through
     expect(changed).toBe(false)
     expect(migrated["custom-agent"]).toEqual({ model: "custom/model" })
-  })
-
-  test("migrates orchestrator-sisyphus to atlas", () => {
-    // #given: Config with legacy orchestrator-sisyphus agent name
-    const agents = {
-      "orchestrator-sisyphus": { model: "anthropic/claude-opus-4-5" },
-    }
-
-    // #when: Migrate agent names
-    const { migrated, changed } = migrateAgentNames(agents)
-
-    // #then: orchestrator-sisyphus should be migrated to atlas
-    expect(changed).toBe(true)
-    expect(migrated["atlas"]).toEqual({ model: "anthropic/claude-opus-4-5" })
-    expect(migrated["orchestrator-sisyphus"]).toBeUndefined()
-  })
-
-  test("migrates lowercase atlas to atlas", () => {
-    // #given: Config with lowercase atlas agent name
-    const agents = {
-      atlas: { model: "anthropic/claude-opus-4-5" },
-    }
-
-    // #when: Migrate agent names
-    const { migrated, changed } = migrateAgentNames(agents)
-
-    // #then: lowercase atlas should remain atlas (no change needed)
-    expect(changed).toBe(false)
-    expect(migrated["atlas"]).toEqual({ model: "anthropic/claude-opus-4-5" })
   })
 
   test("migrates Sisyphus variants to lowercase", () => {
@@ -130,50 +96,6 @@ describe("migrateAgentNames", () => {
     expect(changed).toBe(true)
     expect(migrated["sisyphus"]).toEqual({ model: "test" })
     expect(migrated["omo"]).toBeUndefined()
-  })
-
-  test("migrates Atlas variants to lowercase", () => {
-    // #given agents config with "Atlas" key
-    // #when migrateAgentNames called
-    // #then key becomes "atlas"
-    const agents = { "Atlas": { model: "test" } }
-    const { migrated, changed } = migrateAgentNames(agents)
-    expect(changed).toBe(true)
-    expect(migrated["atlas"]).toEqual({ model: "test" })
-    expect(migrated["Atlas"]).toBeUndefined()
-  })
-
-  test("migrates Prometheus variants to lowercase", () => {
-    // #given agents config with "Prometheus (Planner)" key
-    // #when migrateAgentNames called
-    // #then key becomes "prometheus"
-    const agents = { "Prometheus (Planner)": { model: "test" } }
-    const { migrated, changed } = migrateAgentNames(agents)
-    expect(changed).toBe(true)
-    expect(migrated["prometheus"]).toEqual({ model: "test" })
-    expect(migrated["Prometheus (Planner)"]).toBeUndefined()
-  })
-
-  test("migrates Metis variants to lowercase", () => {
-    // #given agents config with "Metis (Plan Consultant)" key
-    // #when migrateAgentNames called
-    // #then key becomes "metis"
-    const agents = { "Metis (Plan Consultant)": { model: "test" } }
-    const { migrated, changed } = migrateAgentNames(agents)
-    expect(changed).toBe(true)
-    expect(migrated["metis"]).toEqual({ model: "test" })
-    expect(migrated["Metis (Plan Consultant)"]).toBeUndefined()
-  })
-
-  test("migrates Momus variants to lowercase", () => {
-    // #given agents config with "Momus (Plan Reviewer)" key
-    // #when migrateAgentNames called
-    // #then key becomes "momus"
-    const agents = { "Momus (Plan Reviewer)": { model: "test" } }
-    const { migrated, changed } = migrateAgentNames(agents)
-    expect(changed).toBe(true)
-    expect(migrated["momus"]).toEqual({ model: "test" })
-    expect(migrated["Momus (Plan Reviewer)"]).toBeUndefined()
   })
 
   test("migrates Sisyphus-Junior to lowercase", () => {
@@ -199,27 +121,26 @@ describe("migrateAgentNames", () => {
 })
 
 describe("migrateHookNames", () => {
-  test("migrates anthropic-auto-compact to anthropic-context-window-limit-recovery", () => {
+  test("removes anthropic-auto-compact (superseded by ACP)", () => {
     // #given: Config with legacy hook name
     const hooks = ["anthropic-auto-compact", "comment-checker"]
 
     // #when: Migrate hook names
     const { migrated, changed, removed } = migrateHookNames(hooks)
 
-    // #then: Legacy hook name should be migrated
+    // #then: Legacy hook name should be removed
     expect(changed).toBe(true)
-    expect(migrated).toContain("anthropic-context-window-limit-recovery")
     expect(migrated).toContain("comment-checker")
     expect(migrated).not.toContain("anthropic-auto-compact")
-    expect(removed).toEqual([])
+    expect(removed).toContain("anthropic-auto-compact")
   })
 
   test("preserves current hook names unchanged", () => {
     // #given: Config with current hook names
     const hooks = [
-      "anthropic-context-window-limit-recovery",
       "todo-continuation-enforcer",
       "session-recovery",
+      "tool-output-truncator",
     ]
 
     // #when: Migrate hook names
@@ -244,36 +165,36 @@ describe("migrateHookNames", () => {
     expect(removed).toEqual([])
   })
 
-  test("migrates multiple legacy hook names", () => {
-    // #given: Multiple legacy hook names (if more are added in future)
+  test("removes multiple legacy hook names", () => {
+    // #given: Multiple legacy hook names
     const hooks = ["anthropic-auto-compact"]
 
     // #when: Migrate hook names
-    const { migrated, changed } = migrateHookNames(hooks)
+    const { migrated, changed, removed } = migrateHookNames(hooks)
 
-    // #then: All legacy names should be migrated
+    // #then: All legacy names should be removed
     expect(changed).toBe(true)
-    expect(migrated).toEqual(["anthropic-context-window-limit-recovery"])
+    expect(migrated).toEqual([])
+    expect(removed).toEqual(["anthropic-auto-compact"])
   })
 
-  test("migrates sisyphus-orchestrator to atlas", () => {
+  test("removes obsolete sisyphus-orchestrator hook (atlas removed)", () => {
     // #given: Config with legacy sisyphus-orchestrator hook
     const hooks = ["sisyphus-orchestrator", "comment-checker"]
 
     // #when: Migrate hook names
     const { migrated, changed, removed } = migrateHookNames(hooks)
 
-    // #then: sisyphus-orchestrator should be migrated to atlas
+    // #then: sisyphus-orchestrator should be removed (atlas hook no longer exists)
     expect(changed).toBe(true)
-    expect(migrated).toContain("atlas")
     expect(migrated).toContain("comment-checker")
     expect(migrated).not.toContain("sisyphus-orchestrator")
-    expect(removed).toEqual([])
+    expect(removed).toContain("sisyphus-orchestrator")
   })
 
   test("removes obsolete hooks and returns them in removed array", () => {
-    // #given: Config with removed hooks from v3.0.0
-    const hooks = ["preemptive-compaction", "empty-message-sanitizer", "comment-checker"]
+    // #given: Config with removed hooks
+    const hooks = ["preemptive-compaction", "empty-message-sanitizer", "anthropic-auto-compact", "context-window-monitor", "comment-checker"]
 
     // #when: Migrate hook names
     const { migrated, changed, removed } = migrateHookNames(hooks)
@@ -283,7 +204,9 @@ describe("migrateHookNames", () => {
     expect(migrated).toEqual(["comment-checker"])
     expect(removed).toContain("preemptive-compaction")
     expect(removed).toContain("empty-message-sanitizer")
-    expect(removed).toHaveLength(2)
+    expect(removed).toContain("anthropic-auto-compact")
+    expect(removed).toContain("context-window-monitor")
+    expect(removed).toHaveLength(4)
   })
 
   test("handles mixed migration and removal", () => {
@@ -293,12 +216,12 @@ describe("migrateHookNames", () => {
     // #when: Migrate hook names
     const { migrated, changed, removed } = migrateHookNames(hooks)
 
-    // #then: Legacy should be renamed, removed should be filtered
+    // #then: All legacy/removed hooks should be filtered
     expect(changed).toBe(true)
-    expect(migrated).toContain("anthropic-context-window-limit-recovery")
-    expect(migrated).toContain("atlas")
     expect(migrated).not.toContain("preemptive-compaction")
-    expect(removed).toEqual(["preemptive-compaction"])
+    expect(migrated).not.toContain("anthropic-auto-compact")
+    expect(migrated).not.toContain("sisyphus-orchestrator")
+    expect(removed).toEqual(["anthropic-auto-compact", "preemptive-compaction", "sisyphus-orchestrator"])
   })
 })
 
@@ -349,8 +272,8 @@ describe("migrateConfigFile", () => {
 
     // #then: Hook names should be migrated
     expect(needsWrite).toBe(true)
-    expect(rawConfig.disabled_hooks).toContain("anthropic-context-window-limit-recovery")
     expect(rawConfig.disabled_hooks).not.toContain("anthropic-auto-compact")
+    expect(rawConfig.disabled_hooks).toContain("comment-checker")
   })
 
   test("does not write if no migration needed", () => {
@@ -360,7 +283,7 @@ describe("migrateConfigFile", () => {
       agents: {
         sisyphus: { model: "test" },
       },
-      disabled_hooks: ["anthropic-context-window-limit-recovery"],
+      disabled_hooks: ["tool-output-truncator"],
     }
 
     // #when: Migrate config file
@@ -376,7 +299,7 @@ describe("migrateConfigFile", () => {
       omo_agent: { disabled: false },
       agents: {
         omo: { model: "test" },
-        "OmO-Plan": { prompt: "custom" },
+        "Sisyphus-Junior": { prompt: "custom" },
       },
       disabled_hooks: ["anthropic-auto-compact"],
     }
@@ -390,8 +313,8 @@ describe("migrateConfigFile", () => {
     expect(rawConfig.omo_agent).toBeUndefined()
     const agents = rawConfig.agents as Record<string, unknown>
     expect(agents["sisyphus"]).toBeDefined()
-    expect(agents["prometheus"]).toBeDefined()
-    expect(rawConfig.disabled_hooks).toContain("anthropic-context-window-limit-recovery")
+    expect(agents["sisyphus-junior"]).toBeDefined()
+    expect(rawConfig.disabled_hooks).not.toContain("anthropic-auto-compact")
   })
 })
 
@@ -401,16 +324,17 @@ describe("migration maps", () => {
     // #then: Should contain all legacy → lowercase mappings
     expect(AGENT_NAME_MAP["omo"]).toBe("sisyphus")
     expect(AGENT_NAME_MAP["OmO"]).toBe("sisyphus")
-    expect(AGENT_NAME_MAP["OmO-Plan"]).toBe("prometheus")
-    expect(AGENT_NAME_MAP["omo-plan"]).toBe("prometheus")
-    expect(AGENT_NAME_MAP["Planner-Sisyphus"]).toBe("prometheus")
-    expect(AGENT_NAME_MAP["plan-consultant"]).toBe("metis")
+    expect(AGENT_NAME_MAP["Sisyphus"]).toBe("sisyphus")
+    expect(AGENT_NAME_MAP["Sisyphus-Junior"]).toBe("sisyphus-junior")
   })
 
-  test("HOOK_NAME_MAP contains anthropic-auto-compact migration", () => {
+  test("HOOK_NAME_MAP marks anthropic-auto-compact as removed", () => {
     // #given/#when: Check HOOK_NAME_MAP
-    // #then: Should contain be legacy hook name mapping
-    expect(HOOK_NAME_MAP["anthropic-auto-compact"]).toBe("anthropic-context-window-limit-recovery")
+    // #then: anthropic-auto-compact should be removed (null)
+    expect(HOOK_NAME_MAP["anthropic-auto-compact"]).toBeNull()
+    expect(HOOK_NAME_MAP["context-window-monitor"]).toBeNull()
+    expect(HOOK_NAME_MAP["anthropic-context-window-limit-recovery"]).toBeNull()
+    expect(HOOK_NAME_MAP["compaction-context-injector"]).toBeNull()
   })
 })
 

@@ -34,8 +34,6 @@ export interface GeneratedOmoConfig {
   [key: string]: unknown
 }
 
-const ZAI_MODEL = "zai-coding-plan/glm-4.7"
-
 const ULTIMATE_FALLBACK = "opencode/big-pickle"
 const SCHEMA_URL = "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json"
 
@@ -133,12 +131,6 @@ export function generateModelConfig(config: InstallConfig): GeneratedOmoConfig {
   const categories: Record<string, CategoryConfig> = {}
 
   for (const [role, req] of Object.entries(AGENT_MODEL_REQUIREMENTS)) {
-    // Special case: librarian always uses ZAI first if available
-    if (role === "librarian" && avail.zai) {
-      agents[role] = { model: ZAI_MODEL }
-      continue
-    }
-
     // Special case: explore uses Claude haiku → OpenCode gpt-5-nano
     if (role === "explore") {
       if (avail.native.claude) {

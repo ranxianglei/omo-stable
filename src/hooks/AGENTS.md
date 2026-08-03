@@ -2,14 +2,13 @@
 
 ## OVERVIEW
 
-31 lifecycle hooks intercepting/modifying agent behavior. Events: PreToolUse, PostToolUse, UserPromptSubmit, Stop, onSummarize.
+28 lifecycle hooks intercepting/modifying agent behavior. Events: PreToolUse, PostToolUse, UserPromptSubmit, Stop, onSummarize.
 
 ## STRUCTURE
 
 ```
 hooks/
 ├── atlas/                      # Main orchestration (773 lines)
-├── anthropic-context-window-limit-recovery/  # Auto-summarize
 ├── todo-continuation-enforcer.ts # Force TODO completion (489 lines)
 ├── ralph-loop/                 # Self-referential dev loop
 ├── claude-code-hooks/          # settings.json compat layer - see AGENTS.md
@@ -20,7 +19,6 @@ hooks/
 ├── directory-readme-injector/  # Auto-injects README.md
 ├── edit-error-recovery/        # Recovers from failures
 ├── thinking-block-validator/   # Ensures valid <thinking>
-├── context-window-monitor.ts   # Reminds of headroom
 ├── session-recovery/           # Auto-recovers from crashes
 ├── think-mode/                 # Dynamic thinking budget
 ├── keyword-detector/           # ultrawork/search/analyze modes
@@ -29,7 +27,6 @@ hooks/
 ├── agent-usage-reminder/       # Specialized agent hints
 ├── auto-update-checker/        # Plugin update check
 ├── tool-output-truncator.ts    # Prevents context bloat
-├── compaction-context-injector/ # Injects context on compaction
 ├── delegate-task-retry/        # Retries failed delegations
 ├── interactive-bash-session/   # Tmux session management
 ├── non-interactive-env/        # Non-TTY environment handling
