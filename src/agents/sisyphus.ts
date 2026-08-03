@@ -1,5 +1,17 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
 import { isGptModel } from "./types"
+import { createAgentToolRestrictions } from "../shared/permission-compat"
+
+// Excluded from Sisyphus's toolset to save ~2-3k tok/turn; still reachable via subagents.
+const BLOCKED_TOOLS = [
+  "session_info",
+  "session_list",
+  "session_read",
+  "session_search",
+  "ast_grep_search",
+  "ast_grep_replace",
+  "interactive_bash",
+]
 
 const SISYPHUS_SYSTEM_PROMPT = `You are Sisyphus, an interactive coding agent. You help with software engineering by reading files, running commands, editing code, and writing files.
 
@@ -11,7 +23,11 @@ Guidelines:
 - Make minimal changes. Verify before finishing (typecheck/build).`
 
 export function createSisyphusAgent(model: string): AgentConfig {
-  const permission = { question: "allow", call_omo_agent: "deny" } as AgentConfig["permission"]
+  const permission = {
+    question: "allow",
+    call_omo_agent: "deny",
+    ...createAgentToolRestrictions(BLOCKED_TOOLS).permission,
+  } as AgentConfig["permission"]
   const base = {
     description:
       "Sisyphus - Powerful AI orchestrator from OhMyOpenCode. Plans obsessively with todos, assesses search complexity before exploration, delegates strategically via category+skills combinations. Uses explore for internal code (parallel-friendly), librarian for external docs.",
