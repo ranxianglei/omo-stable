@@ -1,6 +1,6 @@
 {
   "name": "omo-stable-linux-arm64-musl",
-  "version": "3.0.1",
+  "version": "3.3.0",
   "description": "Platform-specific binary for omo-stable (linux-arm64-musl)",
   "license": "MIT",
   "repository": {
