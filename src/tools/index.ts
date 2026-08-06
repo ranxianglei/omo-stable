@@ -17,7 +17,6 @@ import {
 
 import { grep } from "./grep"
 import { glob } from "./glob"
-export { createSlashcommandTool, discoverCommandsSync } from "./slashcommand"
 
 import {
   session_list,
