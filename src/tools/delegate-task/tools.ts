@@ -178,22 +178,13 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
     return desc ? `  - ${name}: ${desc}` : `  - ${name}`
   }).join("\n")
 
-  const description = `Spawn agent task with category-based or direct agent selection.
+  const description = `Spawn a sub-agent task. Provide EITHER category OR subagent_type, not both.
 
-MUTUALLY EXCLUSIVE: Provide EITHER category OR subagent_type, not both (unless continuing a session).
-
-- category: Use predefined category → Spawns Sisyphus-Junior with category config
-  Available categories:
+- category: predefined category (spawns Sisyphus-Junior with that config)
 ${categoryList}
-- subagent_type: Use specific agent directly (e.g., "oracle", "explore")
-- run_in_background: true=async (returns task_id), false=sync (waits for result). Default: false. Use background=true ONLY for parallel exploration with 5+ independent queries.
-- session_id: Existing Task session to continue (from previous task output). Continues agent with FULL CONTEXT PRESERVED - saves tokens, maintains continuity.
-- command: The command that triggered this Task (optional, for slash command tracking).
-
-**WHEN TO USE session_id:**
-- Task failed/incomplete → session_id with "fix: [specific issue]"
-- Need follow-up on previous result → session_id with additional question
-- Multi-turn conversation with same agent → always session_id instead of new task
+- subagent_type: direct agent name (e.g., "oracle", "explore")
+- run_in_background: false=sync (default), true=async (returns task_id)
+- session_id: continue an existing task session (preserves context)
 
 Prompts MUST be in English.`
 

@@ -44,8 +44,6 @@ import {
   builtinTools,
   createCallOmoAgent,
   createBackgroundTools,
-  createSlashcommandTool,
-  discoverCommandsSync,
   sessionExists,
   createDelegateTask,
   interactive_bash,
@@ -198,11 +196,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     sisyphusJuniorModel: pluginConfig.agents?.["sisyphus-junior"]?.model,
   });
 
-  const commands = discoverCommandsSync();
-  const slashcommandTool = createSlashcommandTool({
-    commands,
-  });
-
   const autoSlashCommand = isHookEnabled("auto-slash-command")
     ? createAutoSlashCommandHook()
     : null;
@@ -219,7 +212,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       ...backgroundTools,
       call_omo_agent: callOmoAgent,
       delegate_task: delegateTask,
-      slashcommand: slashcommandTool,
       interactive_bash,
     },
 
