@@ -2,7 +2,7 @@ import {
   detectSlashCommand,
   extractPromptText,
 } from "./detector"
-import { executeSlashCommand, type ExecutorOptions } from "./executor"
+import { executeSlashCommand } from "./executor"
 import { log } from "../../shared"
 import {
   AUTO_SLASH_COMMAND_TAG_OPEN,
@@ -12,7 +12,6 @@ import type {
   AutoSlashCommandHookInput,
   AutoSlashCommandHookOutput,
 } from "./types"
-import type { LoadedSkill } from "../../features/opencode-skill-loader"
 
 export * from "./detector"
 export * from "./executor"
@@ -21,15 +20,7 @@ export * from "./types"
 
 const sessionProcessedCommands = new Set<string>()
 
-export interface AutoSlashCommandHookOptions {
-  skills?: LoadedSkill[]
-}
-
-export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions) {
-  const executorOptions: ExecutorOptions = {
-    skills: options?.skills,
-  }
-
+export function createAutoSlashCommandHook() {
   return {
     "chat.message": async (
       input: AutoSlashCommandHookInput,
@@ -61,7 +52,7 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
         args: parsed.args,
       })
 
-      const result = await executeSlashCommand(parsed, executorOptions)
+      const result = await executeSlashCommand(parsed)
 
       const idx = output.parts.findIndex((p) => p.type === "text" && p.text)
       if (idx < 0) {

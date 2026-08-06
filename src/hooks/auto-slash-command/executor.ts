@@ -10,11 +10,10 @@ import {
 } from "../../shared"
 import type { CommandFrontmatter } from "../../features/claude-code-command-loader/types"
 import { isMarkdownFile } from "../../shared/file-utils"
-import { discoverAllSkills, type LoadedSkill, type LazyContentLoader } from "../../features/opencode-skill-loader"
 import type { ParsedSlashCommand } from "./types"
 
 interface CommandScope {
-  type: "user" | "project" | "opencode" | "opencode-project" | "skill"
+  type: "user" | "project" | "opencode" | "opencode-project"
 }
 
 interface CommandMetadata {
@@ -32,7 +31,6 @@ interface CommandInfo {
   metadata: CommandMetadata
   content?: string
   scope: CommandScope["type"]
-  lazyContentLoader?: LazyContentLoader
 }
 
 function discoverCommandsFromDir(commandsDir: string, scope: CommandScope["type"]): CommandInfo[] {
@@ -78,29 +76,7 @@ function discoverCommandsFromDir(commandsDir: string, scope: CommandScope["type"
   return commands
 }
 
-function skillToCommandInfo(skill: LoadedSkill): CommandInfo {
-  return {
-    name: skill.name,
-    path: skill.path,
-    metadata: {
-      name: skill.name,
-      description: skill.definition.description || "",
-      argumentHint: skill.definition.argumentHint,
-      model: skill.definition.model,
-      agent: skill.definition.agent,
-      subtask: skill.definition.subtask,
-    },
-    content: skill.definition.template,
-    scope: "skill",
-    lazyContentLoader: skill.lazyContent,
-  }
-}
-
-export interface ExecutorOptions {
-  skills?: LoadedSkill[]
-}
-
-async function discoverAllCommands(options?: ExecutorOptions): Promise<CommandInfo[]> {
+async function discoverAllCommands(): Promise<CommandInfo[]> {
   const configDir = getOpenCodeConfigDir({ binary: "opencode" })
   const userCommandsDir = join(getClaudeConfigDir(), "commands")
   const projectCommandsDir = join(process.cwd(), ".claude", "commands")
@@ -112,26 +88,22 @@ async function discoverAllCommands(options?: ExecutorOptions): Promise<CommandIn
   const projectCommands = discoverCommandsFromDir(projectCommandsDir, "project")
   const opencodeProjectCommands = discoverCommandsFromDir(opencodeProjectDir, "opencode-project")
 
-  const skills = options?.skills ?? await discoverAllSkills()
-  const skillCommands = skills.map(skillToCommandInfo)
-
   return [
     ...opencodeProjectCommands,
     ...projectCommands,
     ...opencodeGlobalCommands,
     ...userCommands,
-    ...skillCommands,
   ]
 }
 
-async function findCommand(commandName: string, options?: ExecutorOptions): Promise<CommandInfo | null> {
-  const allCommands = await discoverAllCommands(options)
+async function findCommand(commandName: string): Promise<CommandInfo | null> {
+  const allCommands = await discoverAllCommands()
   return allCommands.find(
     (cmd) => cmd.name.toLowerCase() === commandName.toLowerCase()
   ) ?? null
 }
 
-async function formatCommandTemplate(cmd: CommandInfo, args: string): Promise<string> {
+async function formatCommandTemplates(cmd: CommandInfo, args: string): Promise<string> {
   const sections: string[] = []
 
   sections.push(`# /${cmd.name} Command\n`)
@@ -156,11 +128,7 @@ async function formatCommandTemplate(cmd: CommandInfo, args: string): Promise<st
   sections.push("---\n")
   sections.push("## Command Instructions\n")
 
-  let content = cmd.content || ""
-  if (!content && cmd.lazyContentLoader) {
-    content = await cmd.lazyContentLoader.load()
-  }
-
+  const content = cmd.content || ""
   const commandDir = cmd.path ? dirname(cmd.path) : process.cwd()
   const withFileRefs = await resolveFileReferencesInText(content, commandDir)
   const resolvedContent = await resolveCommandsInText(withFileRefs)
@@ -181,8 +149,8 @@ export interface ExecuteResult {
   error?: string
 }
 
-export async function executeSlashCommand(parsed: ParsedSlashCommand, options?: ExecutorOptions): Promise<ExecuteResult> {
-  const command = await findCommand(parsed.command, options)
+export async function executeSlashCommand(parsed: ParsedSlashCommand): Promise<ExecuteResult> {
+  const command = await findCommand(parsed.command)
 
   if (!command) {
     return {
@@ -192,7 +160,7 @@ export async function executeSlashCommand(parsed: ParsedSlashCommand, options?: 
   }
 
   try {
-    const template = await formatCommandTemplate(command, parsed.args)
+    const template = await formatCommandTemplates(command, parsed.args)
     return {
       success: true,
       replacementText: template,

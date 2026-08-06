@@ -34,15 +34,6 @@ import {
 import { applyAgentVariant, resolveAgentVariant } from "./shared/agent-variant";
 import { createFirstMessageVariantGate } from "./shared/first-message-variant";
 import {
-  discoverUserClaudeSkills,
-  discoverProjectClaudeSkills,
-  discoverOpencodeGlobalSkills,
-  discoverOpencodeProjectSkills,
-  mergeSkills,
-} from "./features/opencode-skill-loader";
-import { createBuiltinSkills } from "./features/builtin-skills";
-import { getSystemMcpServerNames } from "./features/claude-code-mcp-loader";
-import {
   setMainSession,
   getMainSessionID,
   setSessionAgent,
@@ -53,8 +44,6 @@ import {
   builtinTools,
   createCallOmoAgent,
   createBackgroundTools,
-  createSkillTool,
-  createSkillMcpTool,
   createSlashcommandTool,
   discoverCommandsSync,
   sessionExists,
@@ -64,7 +53,6 @@ import {
   lspManager,
 } from "./tools";
 import { BackgroundManager } from "./features/background-agent";
-import { SkillMcpManager } from "./features/skill-mcp-manager";
 import { initTaskToastManager } from "./features/task-toast-manager";
 import { type HookName } from "./config";
 import { log, detectExternalNotificationPlugin, getNotificationConflictWarning, resetMessageCursor, includesCaseInsensitive } from "./shared";
@@ -209,54 +197,14 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     gitMasterConfig: pluginConfig.git_master,
     sisyphusJuniorModel: pluginConfig.agents?.["sisyphus-junior"]?.model,
   });
-  const disabledSkills = new Set(pluginConfig.disabled_skills ?? []);
-  const systemMcpNames = getSystemMcpServerNames();
-  const builtinSkills = createBuiltinSkills().filter((skill) => {
-    if (disabledSkills.has(skill.name as never)) return false;
-    if (skill.mcpConfig) {
-      for (const mcpName of Object.keys(skill.mcpConfig)) {
-        if (systemMcpNames.has(mcpName)) return false;
-      }
-    }
-    return true;
-  });
-  const includeClaudeSkills = pluginConfig.claude_code?.skills !== false;
-  const [userSkills, globalSkills, projectSkills, opencodeProjectSkills] = await Promise.all([
-    includeClaudeSkills ? discoverUserClaudeSkills() : Promise.resolve([]),
-    discoverOpencodeGlobalSkills(),
-    includeClaudeSkills ? discoverProjectClaudeSkills() : Promise.resolve([]),
-    discoverOpencodeProjectSkills(),
-  ]);
-  const mergedSkills = mergeSkills(
-    builtinSkills,
-    pluginConfig.skills,
-    userSkills,
-    globalSkills,
-    projectSkills,
-    opencodeProjectSkills
-  );
-  const skillMcpManager = new SkillMcpManager();
-  const getSessionIDForMcp = () => getMainSessionID() || "";
-  const skillTool = createSkillTool({
-    skills: mergedSkills,
-    mcpManager: skillMcpManager,
-    getSessionID: getSessionIDForMcp,
-    gitMasterConfig: pluginConfig.git_master,
-  });
-  const skillMcpTool = createSkillMcpTool({
-    manager: skillMcpManager,
-    getLoadedSkills: () => mergedSkills,
-    getSessionID: getSessionIDForMcp,
-  });
 
   const commands = discoverCommandsSync();
   const slashcommandTool = createSlashcommandTool({
     commands,
-    skills: mergedSkills,
   });
 
   const autoSlashCommand = isHookEnabled("auto-slash-command")
-    ? createAutoSlashCommandHook({ skills: mergedSkills })
+    ? createAutoSlashCommandHook()
     : null;
 
   const configHandler = createConfigHandler({
@@ -271,8 +219,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
       ...backgroundTools,
       call_omo_agent: callOmoAgent,
       delegate_task: delegateTask,
-      skill: skillTool,
-      skill_mcp: skillMcpTool,
       slashcommand: slashcommandTool,
       interactive_bash,
     },
@@ -402,7 +348,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
           clearSessionAgent(sessionInfo.id);
           resetMessageCursor(sessionInfo.id);
           firstMessageVariantGate.clear(sessionInfo.id);
-          await skillMcpManager.disconnectSession(sessionInfo.id);
           await lspManager.cleanupTempDirectoryClients();
         }
       }

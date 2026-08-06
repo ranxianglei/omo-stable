@@ -14,7 +14,6 @@ describe("sisyphus-task-retry", () => {
       
       const patternTexts = DELEGATE_TASK_ERROR_PATTERNS.map(p => p.pattern)
       expect(patternTexts).toContain("run_in_background")
-      expect(patternTexts).toContain("load_skills")
       expect(patternTexts).toContain("category OR subagent_type")
       expect(patternTexts).toContain("Unknown category")
       expect(patternTexts).toContain("Unknown agent")
@@ -32,15 +31,6 @@ describe("sisyphus-task-retry", () => {
       
       expect(result).not.toBeNull()
       expect(result?.errorType).toBe("missing_run_in_background")
-    })
-
-    it("should detect load_skills missing error", () => {
-      const output = "[ERROR] Invalid arguments: 'load_skills' parameter is REQUIRED. Use load_skills=[] if no skills are needed."
-      
-      const result = detectDelegateTaskError(output)
-      
-      expect(result).not.toBeNull()
-      expect(result?.errorType).toBe("missing_load_skills")
     })
 
     it("should detect category/subagent mutual exclusion error", () => {

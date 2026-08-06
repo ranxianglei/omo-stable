@@ -6,8 +6,6 @@ import type { DelegateTaskArgs } from "./types"
 import type { CategoryConfig, CategoriesConfig, GitMasterConfig } from "../../config/schema"
 import { DEFAULT_CATEGORIES, CATEGORY_PROMPT_APPENDS, CATEGORY_DESCRIPTIONS } from "./constants"
 import { findNearestMessageWithFields, findFirstMessageWithAgent, MESSAGE_STORAGE } from "../../features/hook-message-injector"
-import { resolveMultipleSkillsAsync } from "../../features/opencode-skill-loader/skill-content"
-import { discoverSkills } from "../../features/opencode-skill-loader"
 import { getTaskToastManager } from "../../features/task-toast-manager"
 import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
 import { subagentSessions, getSessionAgent } from "../../features/claude-code-session-state"
@@ -85,7 +83,6 @@ function formatDetailedError(error: unknown, ctx: ErrorContext): string {
     lines.push(`- category: ${ctx.args.category ?? "(none)"}`)
     lines.push(`- subagent_type: ${ctx.args.subagent_type ?? "(none)"}`)
     lines.push(`- run_in_background: ${ctx.args.run_in_background}`)
-    lines.push(`- load_skills: [${ctx.args.load_skills?.join(", ") ?? ""}]`)
     if (ctx.args.session_id) {
       lines.push(`- session_id: ${ctx.args.session_id}`)
     }
@@ -160,22 +157,11 @@ export interface DelegateTaskToolOptions {
 }
 
 export interface BuildSystemContentInput {
-  skillContent?: string
   categoryPromptAppend?: string
 }
 
 export function buildSystemContent(input: BuildSystemContentInput): string | undefined {
-  const { skillContent, categoryPromptAppend } = input
-
-  if (!skillContent && !categoryPromptAppend) {
-    return undefined
-  }
-
-  if (skillContent && categoryPromptAppend) {
-    return `${skillContent}\n\n${categoryPromptAppend}`
-  }
-
-  return skillContent || categoryPromptAppend
+  return input.categoryPromptAppend
 }
 
 export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefinition {
@@ -196,14 +182,13 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
 
 MUTUALLY EXCLUSIVE: Provide EITHER category OR subagent_type, not both (unless continuing a session).
 
-- load_skills: ALWAYS REQUIRED. Pass at least one skill name (e.g., ["playwright"], ["git-master", "frontend-ui-ux"]).
 - category: Use predefined category → Spawns Sisyphus-Junior with category config
   Available categories:
 ${categoryList}
 - subagent_type: Use specific agent directly (e.g., "oracle", "explore")
 - run_in_background: true=async (returns task_id), false=sync (waits for result). Default: false. Use background=true ONLY for parallel exploration with 5+ independent queries.
 - session_id: Existing Task session to continue (from previous task output). Continues agent with FULL CONTEXT PRESERVED - saves tokens, maintains continuity.
-- command: The command that triggered this task (optional, for slash command tracking).
+- command: The command that triggered this Task (optional, for slash command tracking).
 
 **WHEN TO USE session_id:**
 - Task failed/incomplete → session_id with "fix: [specific issue]"
@@ -215,7 +200,6 @@ Prompts MUST be in English.`
   return tool({
     description,
     args: {
-      load_skills: tool.schema.array(tool.schema.string()).describe("Skill names to inject. REQUIRED - pass [] if no skills needed, but IT IS HIGHLY RECOMMENDED to pass proper skills like [\"playwright\"], [\"git-master\"] for best results."),
       description: tool.schema.string().describe("Short task description (3-5 words)"),
       prompt: tool.schema.string().describe("Full detailed prompt for the agent"),
       run_in_background: tool.schema.boolean().describe("true=async (returns task_id), false=sync (waits). Default: false"),
@@ -229,24 +213,7 @@ Prompts MUST be in English.`
       if (args.run_in_background === undefined) {
         throw new Error(`Invalid arguments: 'run_in_background' parameter is REQUIRED. Use run_in_background=false for task delegation, run_in_background=true only for parallel exploration.`)
       }
-      if (args.load_skills === undefined) {
-        throw new Error(`Invalid arguments: 'load_skills' parameter is REQUIRED. Pass [] if no skills needed, but IT IS HIGHLY RECOMMENDED to pass proper skills like ["playwright"], ["git-master"] for best results.`)
-      }
-      if (args.load_skills === null) {
-        throw new Error(`Invalid arguments: load_skills=null is not allowed. Pass [] if no skills needed, but IT IS HIGHLY RECOMMENDED to pass proper skills.`)
-      }
       const runInBackground = args.run_in_background === true
-
-      let skillContent: string | undefined
-      if (args.load_skills.length > 0) {
-        const { resolved, notFound } = await resolveMultipleSkillsAsync(args.load_skills, { gitMasterConfig })
-        if (notFound.length > 0) {
-          const allSkills = await discoverSkills({ includeClaudeCodePaths: true })
-          const available = allSkills.map(s => s.name).join(", ")
-          return `Skills not found: ${notFound.join(", ")}. Available: ${available}`
-        }
-        skillContent = Array.from(resolved.values()).join("\n\n")
-      }
 
       const messageDir = getMessageDir(ctx.sessionID)
       const prevMessage = messageDir ? findNearestMessageWithFields(messageDir) : null
@@ -284,7 +251,7 @@ Prompts MUST be in English.`
               metadata: {
                 prompt: args.prompt,
                 agent: task.agent,
-                load_skills: args.load_skills,
+                
                 description: args.description,
                 run_in_background: args.run_in_background,
                 sessionId: task.sessionID,
@@ -328,7 +295,7 @@ Use \`background_output\` with task_id="${task.id}" to check progress.`
           title: `Continue: ${args.description}`,
           metadata: {
             prompt: args.prompt,
-            load_skills: args.load_skills,
+            
             description: args.description,
             run_in_background: args.run_in_background,
             sessionId: args.session_id,
@@ -574,7 +541,7 @@ To continue this session: session_id="${args.session_id}"`
         })
 
         if (isUnstableAgent && isRunInBackgroundExplicitlyFalse) {
-          const systemContent = buildSystemContent({ skillContent, categoryPromptAppend })
+          const systemContent = buildSystemContent({ categoryPromptAppend })
 
           try {
             const task = await manager.launch({
@@ -586,8 +553,6 @@ To continue this session: session_id="${args.session_id}"`
               parentModel,
               parentAgent,
               model: categoryModel,
-              skills: args.load_skills.length > 0 ? args.load_skills : undefined,
-              skillContent: systemContent,
             })
 
             // Wait for sessionID to be set (task transitions from pending to running)
@@ -618,7 +583,7 @@ To continue this session: session_id="${args.session_id}"`
                 prompt: args.prompt,
                 agent: agentToUse,
                 category: args.category,
-                load_skills: args.load_skills,
+                
                 description: args.description,
                 run_in_background: args.run_in_background,
                 sessionId: sessionID,
@@ -766,7 +731,7 @@ Sisyphus-Junior is spawned automatically when you specify a category. Pick the a
         }
       }
 
-      const systemContent = buildSystemContent({ skillContent, categoryPromptAppend })
+      const systemContent = buildSystemContent({ categoryPromptAppend })
 
       if (runInBackground) {
         try {
@@ -779,8 +744,6 @@ Sisyphus-Junior is spawned automatically when you specify a category. Pick the a
             parentModel,
             parentAgent,
             model: categoryModel,
-            skills: args.load_skills.length > 0 ? args.load_skills : undefined,
-            skillContent: systemContent,
           })
 
           ctx.metadata?.({
@@ -789,7 +752,6 @@ Sisyphus-Junior is spawned automatically when you specify a category. Pick the a
               prompt: args.prompt,
               agent: task.agent,
               category: args.category,
-              load_skills: args.load_skills,
               description: args.description,
               run_in_background: args.run_in_background,
               sessionId: task.sessionID,
@@ -854,7 +816,6 @@ To continue this session: session_id="${task.sessionID}"`
             agent: agentToUse,
             isBackground: false,
             category: args.category,
-            skills: args.load_skills,
             modelInfo,
           })
         }
@@ -865,7 +826,7 @@ To continue this session: session_id="${task.sessionID}"`
             prompt: args.prompt,
             agent: agentToUse,
             category: args.category,
-            load_skills: args.load_skills,
+            
             description: args.description,
             run_in_background: args.run_in_background,
             sessionId: sessionID,

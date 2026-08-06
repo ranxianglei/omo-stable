@@ -111,7 +111,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "ultrabrain",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -326,7 +325,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "ultrabrain",
           run_in_background: true,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -388,7 +386,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "unspecified-high",
           run_in_background: true,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -446,7 +443,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "unspecified-high",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -457,140 +453,6 @@ describe("sisyphus-task", () => {
         modelID: "claude-opus-4-5",
         variant: "max",
       })
-    }, { timeout: 20000 })
-  })
-
-  describe("skills parameter", () => {
-    test("skills parameter is required - throws error when not provided", async () => {
-      // #given
-      const { createDelegateTask } = require("./tools")
-      
-      const mockManager = { launch: async () => ({}) }
-      const mockClient = {
-        app: { agents: async () => ({ data: [] }) },
-        config: { get: async () => ({ data: { model: SYSTEM_DEFAULT_MODEL } }) },
-        session: {
-          create: async () => ({ data: { id: "test-session" } }),
-          prompt: async () => ({ data: {} }),
-          messages: async () => ({ data: [] }),
-        },
-      }
-      
-      const tool = createDelegateTask({
-        manager: mockManager,
-        client: mockClient,
-      })
-      
-      const toolContext = {
-        sessionID: "parent-session",
-        messageID: "parent-message",
-        agent: "Sisyphus",
-        abort: new AbortController().signal,
-      }
-      
-      // #when - skills not provided (undefined)
-      // #then - should throw error about missing skills
-      await expect(tool.execute(
-        {
-          description: "Test task",
-          prompt: "Do something",
-          category: "ultrabrain",
-          run_in_background: false,
-        },
-        toolContext
-      )).rejects.toThrow("IT IS HIGHLY RECOMMENDED")
-    })
-
-    test("null skills throws error", async () => {
-      // #given
-      const { createDelegateTask } = require("./tools")
-      
-      const mockManager = { launch: async () => ({}) }
-      const mockClient = {
-        app: { agents: async () => ({ data: [] }) },
-        config: { get: async () => ({ data: { model: SYSTEM_DEFAULT_MODEL } }) },
-        session: {
-          create: async () => ({ data: { id: "test-session" } }),
-          prompt: async () => ({ data: {} }),
-          messages: async () => ({ data: [] }),
-        },
-      }
-      
-      const tool = createDelegateTask({
-        manager: mockManager,
-        client: mockClient,
-      })
-      
-      const toolContext = {
-        sessionID: "parent-session",
-        messageID: "parent-message",
-        agent: "Sisyphus",
-        abort: new AbortController().signal,
-      }
-      
-      // #when - null passed
-      // #then - should throw error about null
-      await expect(tool.execute(
-        {
-          description: "Test task",
-          prompt: "Do something",
-          category: "ultrabrain",
-          run_in_background: false,
-          load_skills: null,
-        },
-        toolContext
-      )).rejects.toThrow("IT IS HIGHLY RECOMMENDED")
-    })
-
-    test("empty array [] is allowed and proceeds without skill content", async () => {
-      // #given
-      const { createDelegateTask } = require("./tools")
-      let promptBody: any
-      
-      const mockManager = { launch: async () => ({}) }
-      const mockClient = {
-        app: { agents: async () => ({ data: [] }) },
-        config: { get: async () => ({ data: { model: SYSTEM_DEFAULT_MODEL } }) },
-        session: {
-          get: async () => ({ data: { directory: "/project" } }),
-          create: async () => ({ data: { id: "test-session" } }),
-          prompt: async (input: any) => {
-            promptBody = input.body
-            return { data: {} }
-          },
-          messages: async () => ({
-            data: [{ info: { role: "assistant" }, parts: [{ type: "text", text: "Done" }] }]
-          }),
-          status: async () => ({ data: {} }),
-        },
-      }
-      
-      const tool = createDelegateTask({
-        manager: mockManager,
-        client: mockClient,
-      })
-      
-      const toolContext = {
-        sessionID: "parent-session",
-        messageID: "parent-message",
-        agent: "Sisyphus",
-        abort: new AbortController().signal,
-      }
-      
-      // #when - empty array passed
-      await tool.execute(
-        {
-          description: "Test task",
-          prompt: "Do something",
-          category: "ultrabrain",
-          run_in_background: false,
-          load_skills: [],
-        },
-        toolContext
-      )
-      
-      // #then - should proceed without system content from skills
-      expect(promptBody).toBeDefined()
     }, { timeout: 20000 })
   })
 
@@ -650,7 +512,6 @@ describe("sisyphus-task", () => {
         prompt: "Continue the task",
         session_id: "ses_continue_test",
         run_in_background: false,
-        load_skills: ["git-master"],
       },
       toolContext
     )
@@ -705,7 +566,6 @@ describe("sisyphus-task", () => {
         prompt: "Continue in background",
         session_id: "ses_bg_continue",
         run_in_background: true,
-        load_skills: ["git-master"],
       },
       toolContext
     )
@@ -760,7 +620,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "ultrabrain",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -820,7 +679,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "ultrabrain",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -873,7 +731,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "ultrabrain",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -927,7 +784,6 @@ describe("sisyphus-task", () => {
         prompt: "test",
         category: "custom-cat",
         run_in_background: false,
-        load_skills: ["git-master"]
       }, toolContext)
 
       // #then
@@ -993,7 +849,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something visual",
           category: "visual-engineering",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -1051,7 +906,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something visual",
           category: "visual-engineering",
           run_in_background: true,  // User explicitly says true - normal background
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -1112,7 +966,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something smart",
           category: "ultrabrain",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -1177,7 +1030,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something artistic",
           category: "artistry",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -1242,7 +1094,6 @@ describe("sisyphus-task", () => {
           prompt: "Write something",
           category: "writing",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -1312,7 +1163,6 @@ describe("sisyphus-task", () => {
           prompt: "Do something",
           category: "my-unstable-cat",
           run_in_background: false,
-          load_skills: ["git-master"],
         },
         toolContext
       )
@@ -1325,54 +1175,27 @@ describe("sisyphus-task", () => {
   })
 
   describe("buildSystemContent", () => {
-    test("returns undefined when no skills and no category promptAppend", () => {
+    test("returns undefined when no category promptAppend", () => {
       // #given
       const { buildSystemContent } = require("./tools")
 
       // #when
-      const result = buildSystemContent({ skillContent: undefined, categoryPromptAppend: undefined })
+      const result = buildSystemContent({ categoryPromptAppend: undefined })
 
       // #then
       expect(result).toBeUndefined()
     })
 
-    test("returns skill content only when skills provided without category", () => {
-      // #given
-      const { buildSystemContent } = require("./tools")
-      const skillContent = "You are a playwright expert"
-
-      // #when
-      const result = buildSystemContent({ skillContent, categoryPromptAppend: undefined })
-
-      // #then
-      expect(result).toBe(skillContent)
-    })
-
-    test("returns category promptAppend only when no skills", () => {
+    test("returns category promptAppend when provided", () => {
       // #given
       const { buildSystemContent } = require("./tools")
       const categoryPromptAppend = "Focus on visual design"
 
       // #when
-      const result = buildSystemContent({ skillContent: undefined, categoryPromptAppend })
+      const result = buildSystemContent({ categoryPromptAppend })
 
       // #then
       expect(result).toBe(categoryPromptAppend)
-    })
-
-    test("combines skill content and category promptAppend with separator", () => {
-      // #given
-      const { buildSystemContent } = require("./tools")
-      const skillContent = "You are a playwright expert"
-      const categoryPromptAppend = "Focus on visual design"
-
-      // #when
-      const result = buildSystemContent({ skillContent, categoryPromptAppend })
-
-      // #then
-      expect(result).toContain(skillContent)
-      expect(result).toContain(categoryPromptAppend)
-      expect(result).toContain("\n\n")
     })
   })
 

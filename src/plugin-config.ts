@@ -80,12 +80,6 @@ export function mergeConfigs(
         ...(override.disabled_commands ?? []),
       ]),
     ],
-    disabled_skills: [
-      ...new Set([
-        ...(base.disabled_skills ?? []),
-        ...(override.disabled_skills ?? []),
-      ]),
-    ],
     claude_code: deepMerge(base.claude_code, override.claude_code),
   };
 }
