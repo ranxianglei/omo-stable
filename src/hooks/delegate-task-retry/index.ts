@@ -13,11 +13,6 @@ export const DELEGATE_TASK_ERROR_PATTERNS: DelegateTaskErrorPattern[] = [
     fixHint: "Add run_in_background=false (for delegation) or run_in_background=true (for parallel exploration)",
   },
   {
-    pattern: "load_skills",
-    errorType: "missing_load_skills",
-    fixHint: "Add load_skills=[] parameter (empty array if no skills needed). Note: Calling Skill tool does NOT populate this.",
-  },
-  {
     pattern: "category OR subagent_type",
     errorType: "mutual_exclusion",
     fixHint: "Provide ONLY one of: category (e.g., 'general', 'quick') OR subagent_type (e.g., 'oracle', 'explore')",
@@ -46,11 +41,6 @@ export const DELEGATE_TASK_ERROR_PATTERNS: DelegateTaskErrorPattern[] = [
     pattern: "Cannot call primary agent",
     errorType: "primary_agent",
     fixHint: "Primary agents cannot be called via delegate_task. Use a subagent like 'explore', 'oracle', or 'librarian'",
-  },
-  {
-    pattern: "Skills not found",
-    errorType: "unknown_skills",
-    fixHint: "Use valid skill names from the Available list in the error message",
   },
 ]
 
@@ -109,8 +99,7 @@ delegate_task(
   description="Task description",
   prompt="Detailed prompt...",
   category="unspecified-low",  // OR subagent_type="explore"
-  run_in_background=false,
-  load_skills=[]
+  run_in_background=false
 )
 \`\`\`
 `

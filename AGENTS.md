@@ -45,7 +45,6 @@ omo-stable/
 | Add hook | `src/hooks/` | Create dir with `createXXXHook()`, register in `index.ts` |
 | Add tool | `src/tools/` | Dir with index/types/constants/tools.ts |
 | Add MCP | `src/mcp/` | Create config, add to `index.ts` |
-| Add skill | `src/features/builtin-skills/` | Create dir with `SKILL.md` |
 | Add command | `src/features/builtin-commands/` | Add template + register in `commands.ts` |
 | Config schema | `src/config/schema.ts` | Zod schema, run `bun run build:schema` after edits |
 
@@ -54,7 +53,6 @@ omo-stable/
 | File | Lines | Description |
 |------|-------|-------------|
 | `src/features/background-agent/manager.ts` | ~1335 | Task lifecycle, concurrency |
-| `src/features/builtin-skills/skills.ts` | ~1203 | Skill definitions |
 | `src/agents/prometheus-prompt.ts` | ~1196 | Planning agent |
 | `src/hooks/todo-continuation-enforcer.ts` | ~545 | Autonomous todo-resume enforcer (see §7) |
 | `src/hooks/atlas/index.ts` | ~773 | Orchestrator hook |

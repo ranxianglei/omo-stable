@@ -9,7 +9,11 @@ import { log } from "../../shared/logger"
 import { expandEnvVarsInObject } from "../claude-code-mcp-loader/env-expander"
 import { transformMcpServer } from "../claude-code-mcp-loader/transformer"
 import type { CommandDefinition, CommandFrontmatter } from "../claude-code-command-loader/types"
-import type { SkillMetadata } from "../opencode-skill-loader/types"
+interface SkillMetadata {
+  name?: string
+  description?: string
+  model?: string
+}
 import type { AgentFrontmatter } from "../claude-code-agent-loader/types"
 import type { ClaudeCodeMcpConfig, McpServerConfig } from "../claude-code-mcp-loader/types"
 import type {

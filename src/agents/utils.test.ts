@@ -105,7 +105,7 @@ describe("createBuiltinAgents with model overrides", () => {
    })
 })
 
-describe("buildAgent with category and skills", () => {
+describe("buildAgent with category", () => {
   const { buildAgent } = require("./utils")
   const TEST_MODEL = "anthropic/claude-opus-4-5"
 
@@ -169,46 +169,7 @@ describe("buildAgent with category and skills", () => {
     expect(agent.variant).toBe("xhigh")
   })
 
-  test("agent with skills has content prepended to prompt", () => {
-    // #given
-    const source = {
-      "test-agent": () =>
-        ({
-          description: "Test agent",
-          skills: ["frontend-ui-ux"],
-          prompt: "Original prompt content",
-        }) as AgentConfig,
-    }
-
-    // #when
-    const agent = buildAgent(source["test-agent"], TEST_MODEL)
-
-    // #then
-    expect(agent.prompt).toContain("Role: Designer-Turned-Developer")
-    expect(agent.prompt).toContain("Original prompt content")
-    expect(agent.prompt).toMatch(/Designer-Turned-Developer[\s\S]*Original prompt content/s)
-  })
-
-  test("agent with multiple skills has all content prepended", () => {
-    // #given
-    const source = {
-      "test-agent": () =>
-        ({
-          description: "Test agent",
-          skills: ["frontend-ui-ux"],
-          prompt: "Agent prompt",
-        }) as AgentConfig,
-    }
-
-    // #when
-    const agent = buildAgent(source["test-agent"], TEST_MODEL)
-
-    // #then
-    expect(agent.prompt).toContain("Role: Designer-Turned-Developer")
-    expect(agent.prompt).toContain("Agent prompt")
-  })
-
-  test("agent without category or skills works as before", () => {
+  test("agent without category works as before", () => {
     // #given
     const source = {
       "test-agent": () =>
@@ -229,28 +190,6 @@ describe("buildAgent with category and skills", () => {
     expect(agent.prompt).toBe("Base prompt")
   })
 
-  test("agent with category and skills applies both", () => {
-    // #given
-    const source = {
-      "test-agent": () =>
-        ({
-          description: "Test agent",
-          category: "ultrabrain",
-          skills: ["frontend-ui-ux"],
-          prompt: "Task description",
-        }) as AgentConfig,
-    }
-
-    // #when
-    const agent = buildAgent(source["test-agent"], TEST_MODEL)
-
-    // #then - category's built-in model and skills are applied
-    expect(agent.model).toBe("openai/gpt-5.2-codex")
-    expect(agent.variant).toBe("xhigh")
-    expect(agent.prompt).toContain("Role: Designer-Turned-Developer")
-    expect(agent.prompt).toContain("Task description")
-  })
-
   test("agent with non-existent category has no effect", () => {
     // #given
     const source = {
@@ -269,43 +208,6 @@ describe("buildAgent with category and skills", () => {
     // Note: The factory receives model, but if category doesn't exist, it's not applied
     // The agent's model comes from the factory output (which doesn't set model)
     expect(agent.model).toBeUndefined()
-    expect(agent.prompt).toBe("Base prompt")
-  })
-
-  test("agent with non-existent skills only prepends found ones", () => {
-    // #given
-    const source = {
-      "test-agent": () =>
-        ({
-          description: "Test agent",
-          skills: ["frontend-ui-ux", "non-existent-skill"],
-          prompt: "Base prompt",
-        }) as AgentConfig,
-    }
-
-    // #when
-    const agent = buildAgent(source["test-agent"], TEST_MODEL)
-
-    // #then
-    expect(agent.prompt).toContain("Role: Designer-Turned-Developer")
-    expect(agent.prompt).toContain("Base prompt")
-  })
-
-  test("agent with empty skills array keeps original prompt", () => {
-    // #given
-    const source = {
-      "test-agent": () =>
-        ({
-          description: "Test agent",
-          skills: [],
-          prompt: "Base prompt",
-        }) as AgentConfig,
-    }
-
-    // #when
-    const agent = buildAgent(source["test-agent"], TEST_MODEL)
-
-    // #then
     expect(agent.prompt).toBe("Base prompt")
   })
 })

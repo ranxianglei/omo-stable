@@ -201,58 +201,6 @@ describe("AgentOverrideConfigSchema", () => {
     })
   })
 
-  describe("skills field", () => {
-    test("accepts skills as optional string array", () => {
-      // #given
-      const config = { skills: ["frontend-ui-ux", "code-reviewer"] }
-
-      // #when
-      const result = AgentOverrideConfigSchema.safeParse(config)
-
-      // #then
-      expect(result.success).toBe(true)
-      if (result.success) {
-        expect(result.data.skills).toEqual(["frontend-ui-ux", "code-reviewer"])
-      }
-    })
-
-    test("accepts empty skills array", () => {
-      // #given
-      const config = { skills: [] }
-
-      // #when
-      const result = AgentOverrideConfigSchema.safeParse(config)
-
-      // #then
-      expect(result.success).toBe(true)
-      if (result.success) {
-        expect(result.data.skills).toEqual([])
-      }
-    })
-
-    test("accepts config without skills", () => {
-      // #given
-      const config = { temperature: 0.5 }
-
-      // #when
-      const result = AgentOverrideConfigSchema.safeParse(config)
-
-      // #then
-      expect(result.success).toBe(true)
-    })
-
-    test("rejects non-array skills", () => {
-      // #given
-      const config = { skills: "frontend-ui-ux" }
-
-      // #when
-      const result = AgentOverrideConfigSchema.safeParse(config)
-
-      // #then
-      expect(result.success).toBe(false)
-    })
-  })
-
   describe("backward compatibility", () => {
     test("still accepts model field (deprecated)", () => {
       // #given
@@ -288,11 +236,11 @@ describe("AgentOverrideConfigSchema", () => {
   })
 
   describe("combined fields", () => {
-    test("accepts category with skills", () => {
+    test("accepts category with variant", () => {
       // #given
-      const config = { 
+      const config = {
         category: "visual-engineering",
-        skills: ["frontend-ui-ux"]
+        variant: "high"
       }
 
       // #when
@@ -302,15 +250,14 @@ describe("AgentOverrideConfigSchema", () => {
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.category).toBe("visual-engineering")
-        expect(result.data.skills).toEqual(["frontend-ui-ux"])
+        expect(result.data.variant).toBe("high")
       }
     })
 
-    test("accepts category with skills and other fields", () => {
+    test("accepts category with other fields", () => {
       // #given
-      const config = { 
+      const config = {
         category: "ultrabrain",
-        skills: ["code-reviewer"],
         temperature: 0.3,
         prompt_append: "Extra instructions"
       }
@@ -322,7 +269,6 @@ describe("AgentOverrideConfigSchema", () => {
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.category).toBe("ultrabrain")
-        expect(result.data.skills).toEqual(["code-reviewer"])
         expect(result.data.temperature).toBe(0.3)
         expect(result.data.prompt_append).toBe("Extra instructions")
       }

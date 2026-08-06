@@ -5,7 +5,6 @@ import { parseFrontmatter, resolveCommandsInText, resolveFileReferencesInText, s
 import type { CommandFrontmatter } from "../../features/claude-code-command-loader/types"
 import { isMarkdownFile } from "../../shared/file-utils"
 import { getClaudeConfigDir } from "../../shared"
-import { discoverAllSkills, type LoadedSkill } from "../../features/opencode-skill-loader"
 import { loadBuiltinCommands } from "../../features/builtin-commands"
 import type { CommandScope, CommandMetadata, CommandInfo, SlashcommandToolOptions } from "./types"
 
@@ -82,24 +81,6 @@ export function discoverCommandsSync(): CommandInfo[] {
   return [...builtinCommands, ...opencodeProjectCommands, ...projectCommands, ...opencodeGlobalCommands, ...userCommands]
 }
 
-function skillToCommandInfo(skill: LoadedSkill): CommandInfo {
-  return {
-    name: skill.name,
-    path: skill.path,
-    metadata: {
-      name: skill.name,
-      description: skill.definition.description || "",
-      argumentHint: skill.definition.argumentHint,
-      model: skill.definition.model,
-      agent: skill.definition.agent,
-      subtask: skill.definition.subtask,
-    },
-    content: skill.definition.template,
-    scope: skill.scope,
-    lazyContentLoader: skill.lazyContent,
-  }
-}
-
 async function formatLoadedCommand(cmd: CommandInfo): Promise<string> {
   const sections: string[] = []
 
@@ -129,11 +110,7 @@ async function formatLoadedCommand(cmd: CommandInfo): Promise<string> {
   sections.push("---\n")
   sections.push("## Command Instructions\n")
 
-  let content = cmd.content || ""
-  if (!content && cmd.lazyContentLoader) {
-    content = await cmd.lazyContentLoader.load()
-  }
-
+  const content = cmd.content || ""
   const commandDir = cmd.path ? dirname(cmd.path) : process.cwd()
   const withFileRefs = await resolveFileReferencesInText(content, commandDir)
   const resolvedContent = await resolveCommandsInText(withFileRefs)
@@ -144,10 +121,10 @@ async function formatLoadedCommand(cmd: CommandInfo): Promise<string> {
 
 function formatCommandList(items: CommandInfo[]): string {
   if (items.length === 0) {
-    return "No commands or skills found."
+    return "No commands found."
   }
 
-  const lines = ["# Available Commands & Skills\n"]
+  const lines = ["# Available Commands\n"]
 
   for (const cmd of items) {
     const hint = cmd.metadata.argumentHint ? ` ${cmd.metadata.argumentHint}` : ""
@@ -160,10 +137,10 @@ function formatCommandList(items: CommandInfo[]): string {
   return lines.join("\n")
 }
 
-const TOOL_DESCRIPTION_PREFIX = `Load a skill to get detailed instructions for a specific task.
+const TOOL_DESCRIPTION_PREFIX = `Load a slash command to get detailed instructions for a specific task.
 
-Skills provide specialized knowledge and step-by-step guidance.
-Use this when a task matches an available skill's description.
+Commands provide specialized knowledge and step-by-step guidance.
+Use this when a task matches an available command's description.
 `
 
 function buildDescriptionFromItems(items: CommandInfo[]): string {
@@ -175,14 +152,13 @@ function buildDescriptionFromItems(items: CommandInfo[]): string {
     .join("\n")
 
   return `${TOOL_DESCRIPTION_PREFIX}
-<available_skills>
+<available_commands>
 ${commandListForDescription}
-</available_skills>`
+</available_commands>`
 }
 
 export function createSlashcommandTool(options: SlashcommandToolOptions = {}): ToolDefinition {
   let cachedCommands: CommandInfo[] | null = options.commands ?? null
-  let cachedSkills: LoadedSkill[] | null = options.skills ?? null
   let cachedDescription: string | null = null
 
   const getCommands = (): CommandInfo[] => {
@@ -191,22 +167,9 @@ export function createSlashcommandTool(options: SlashcommandToolOptions = {}): T
     return cachedCommands
   }
 
-  const getSkills = async (): Promise<LoadedSkill[]> => {
-    if (cachedSkills) return cachedSkills
-    cachedSkills = await discoverAllSkills()
-    return cachedSkills
-  }
-
-  const getAllItems = async (): Promise<CommandInfo[]> => {
-    const commands = getCommands()
-    const skills = await getSkills()
-    return [...commands, ...skills.map(skillToCommandInfo)]
-  }
-
-  const buildDescription = async (): Promise<string> => {
+  const buildDescription = (): string => {
     if (cachedDescription) return cachedDescription
-    const allItems = await getAllItems()
-    cachedDescription = buildDescriptionFromItems(allItems)
+    cachedDescription = buildDescriptionFromItems(getCommands())
     return cachedDescription
   }
 
@@ -227,10 +190,10 @@ export function createSlashcommandTool(options: SlashcommandToolOptions = {}): T
     },
 
     async execute(args) {
-      const allItems = await getAllItems()
+      const allItems = getCommands()
 
       if (!args.command) {
-        return formatCommandList(allItems) + "\n\nProvide a command or skill name to execute."
+        return formatCommandList(allItems) + "\n\nProvide a command name to execute."
       }
 
       const cmdName = args.command.replace(/^\//, "")
@@ -256,7 +219,7 @@ export function createSlashcommandTool(options: SlashcommandToolOptions = {}): T
       }
 
       return (
-        `Command or skill "/${cmdName}" not found.\n\n` +
+        `Command "/${cmdName}" not found.\n\n` +
         formatCommandList(allItems) +
         "\n\nTry a different name."
       )

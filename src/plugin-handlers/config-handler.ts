@@ -8,12 +8,6 @@ import {
 } from "../features/claude-code-command-loader";
 import { loadBuiltinCommands } from "../features/builtin-commands";
 import {
-  loadUserSkills,
-  loadProjectSkills,
-  loadOpencodeGlobalSkills,
-  loadOpencodeProjectSkills,
-} from "../features/opencode-skill-loader";
-import {
   loadUserAgents,
   loadProjectAgents,
 } from "../features/claude-code-agent-loader";
@@ -146,7 +140,6 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
       ctx.directory,
       config.model as string | undefined,
       pluginConfig.categories,
-      pluginConfig.git_master,
       ctx.client
     );
 
@@ -306,43 +299,28 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
     const builtinCommands = loadBuiltinCommands(pluginConfig.disabled_commands);
     const systemCommands = (config.command as Record<string, unknown>) ?? {};
 
-    // Parallel loading of all commands and skills for faster startup
     const includeClaudeCommands = pluginConfig.claude_code?.commands ?? true;
-    const includeClaudeSkills = pluginConfig.claude_code?.skills ?? true;
 
     const [
       userCommands,
       projectCommands,
       opencodeGlobalCommands,
       opencodeProjectCommands,
-      userSkills,
-      projectSkills,
-      opencodeGlobalSkills,
-      opencodeProjectSkills,
     ] = await Promise.all([
       includeClaudeCommands ? loadUserCommands() : Promise.resolve({}),
       includeClaudeCommands ? loadProjectCommands() : Promise.resolve({}),
       loadOpencodeGlobalCommands(),
       loadOpencodeProjectCommands(),
-      includeClaudeSkills ? loadUserSkills() : Promise.resolve({}),
-      includeClaudeSkills ? loadProjectSkills() : Promise.resolve({}),
-      loadOpencodeGlobalSkills(),
-      loadOpencodeProjectSkills(),
     ]);
 
     config.command = {
       ...builtinCommands,
       ...userCommands,
-      ...userSkills,
       ...opencodeGlobalCommands,
-      ...opencodeGlobalSkills,
       ...systemCommands,
       ...projectCommands,
-      ...projectSkills,
       ...opencodeProjectCommands,
-      ...opencodeProjectSkills,
       ...pluginComponents.commands,
-      ...pluginComponents.skills,
     };
   };
 }
