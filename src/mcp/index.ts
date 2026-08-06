@@ -1,4 +1,3 @@
-import { websearch } from "./websearch"
 import { context7 } from "./context7"
 import { grep_app } from "./grep-app"
 import type { McpName } from "./types"
@@ -14,7 +13,6 @@ type RemoteMcpConfig = {
 }
 
 const allBuiltinMcps: Record<McpName, RemoteMcpConfig> = {
-  websearch,
   context7,
   grep_app,
 }
