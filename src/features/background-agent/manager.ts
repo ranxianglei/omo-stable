@@ -17,7 +17,7 @@ import { join } from "node:path"
 
 const TASK_TTL_MS = 30 * 60 * 1000
 const MIN_STABILITY_TIME_MS = 10 * 1000  // Must run at least 10s before stability detection kicks in
-const DEFAULT_STALE_TIMEOUT_MS = 180_000  // 3 minutes
+const DEFAULT_STALE_TIMEOUT_MS = 1_200_000  // 20 minutes without activity
 const MIN_RUNTIME_BEFORE_STALE_MS = 30_000  // 30 seconds
 
 type ProcessCleanupEvent = NodeJS.Signals | "beforeExit" | "exit"
@@ -1239,16 +1239,6 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     } catch (error) {
       log("[background-agent] Failed to send notification:", error)
     }
-
-    const taskId = task.id
-    setTimeout(() => {
-      // Guard: Only delete if task still exists (could have been deleted by session.deleted event)
-      if (this.tasks.has(taskId)) {
-        this.clearNotificationsForTask(taskId)
-        this.tasks.delete(taskId)
-        log("[background-agent] Removed completed task from memory:", taskId)
-      }
-    }, 5 * 60 * 1000)
   }
 
   private formatDuration(start: Date, end?: Date): string {
@@ -1280,24 +1270,18 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
       // older than the TTL; pruning them would undo the recovery.
       if (task.rehydrated) continue
 
-      const timestamp = task.status === "pending" 
-        ? task.queuedAt?.getTime() 
-        : task.startedAt?.getTime()
-      
-      if (!timestamp) {
-        continue
-      }
-      
+      // Queued tasks are waiting for a slot and running tasks are judged by
+      // activity in checkAndInterruptStaleTasks. Dropping either here would
+      // discard the handle of an agent that is still alive.
+      if (task.status === "pending" || task.status === "running") continue
+
+      const timestamp = task.completedAt?.getTime() ?? task.startedAt?.getTime()
+      if (!timestamp) continue
+
       const age = now - timestamp
       if (age > TASK_TTL_MS) {
-        const errorMessage = task.status === "pending"
-          ? "Task timed out while queued (30 minutes)"
-          : "Task timed out after 30 minutes"
-        
-        log("[background-agent] Pruning stale task:", { taskId, status: task.status, age: Math.round(age / 1000) + "s" })
-        task.status = "error"
-        task.error = errorMessage
-        task.completedAt = new Date()
+        log("[background-agent] Reclaiming finished task:", { taskId, status: task.status, age: Math.round(age / 1000) + "s" })
+
         if (task.concurrencyKey) {
           this.concurrencyManager.release(task.concurrencyKey)
           task.concurrencyKey = undefined

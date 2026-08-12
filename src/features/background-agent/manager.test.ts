@@ -1911,10 +1911,10 @@ describe("BackgroundManager.checkAndInterruptStaleTasks", () => {
       prompt: "Test",
       agent: "test-agent",
       status: "running",
-      startedAt: new Date(Date.now() - 300_000),
+      startedAt: new Date(Date.now() - 90 * 60_000),
       progress: {
         toolCalls: 1,
-        lastUpdate: new Date(Date.now() - 200_000),
+        lastUpdate: new Date(Date.now() - 25 * 60_000),
       },
     }
 
@@ -1923,6 +1923,38 @@ describe("BackgroundManager.checkAndInterruptStaleTasks", () => {
     await manager["checkAndInterruptStaleTasks"]()
 
     expect(task.status).toBe("cancelled")
+  })
+
+  test("should leave a task alone when idle for less than the default timeout", async () => {
+    const client = {
+      session: {
+        prompt: async () => ({}),
+        abort: async () => ({}),
+      },
+    }
+    const manager = new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+
+    const task: BackgroundTask = {
+      id: "task-9",
+      sessionID: "session-9",
+      parentSessionID: "parent-9",
+      parentMessageID: "msg-9",
+      description: "Slow but alive",
+      prompt: "Test",
+      agent: "test-agent",
+      status: "running",
+      startedAt: new Date(Date.now() - 60 * 60_000),
+      progress: {
+        toolCalls: 1,
+        lastUpdate: new Date(Date.now() - 15 * 60_000),
+      },
+    }
+
+    manager["tasks"].set(task.id, task)
+
+    await manager["checkAndInterruptStaleTasks"]()
+
+    expect(task.status).toBe("running")
   })
 })
 
@@ -2261,6 +2293,121 @@ describe("BackgroundManager.waitForSessionID", () => {
     // #then
     expect(sessionID).toBeUndefined()
     expect(Date.now() - started).toBeLessThan(1000)
+    manager.shutdown()
+  })
+})
+
+describe("BackgroundManager - completed task retention", () => {
+  function createManager(): BackgroundManager {
+    const client = {
+      session: {
+        prompt: async () => ({}),
+        messages: async () => ({ data: [] }),
+        abort: async () => ({}),
+      },
+    }
+    return new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+  }
+
+  function completedTask(id: string, ageMs: number): BackgroundTask {
+    return {
+      id,
+      sessionID: `ses_${id}`,
+      parentSessionID: "parent",
+      parentMessageID: "msg",
+      description: "Finished work",
+      prompt: "Test",
+      agent: "test-agent",
+      status: "completed",
+      startedAt: new Date(Date.now() - ageMs),
+      completedAt: new Date(Date.now() - ageMs + 1000),
+      result: "the answer",
+    }
+  }
+
+  test("should not schedule an eviction of a completed task after notifying the parent", async () => {
+    // #given
+    const manager = createManager()
+    const task = completedTask("task-retained", 10_000)
+    manager["tasks"].set(task.id, task)
+    const scheduled: number[] = []
+    const realSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = ((fn: () => void, ms?: number) => {
+      scheduled.push(ms ?? 0)
+      return realSetTimeout(fn, 10_000_000)
+    }) as typeof globalThis.setTimeout
+
+    // #when
+    try {
+      await manager["notifyParentSession"](task)
+    } finally {
+      globalThis.setTimeout = realSetTimeout
+    }
+
+    // #then
+    expect(scheduled).not.toContain(5 * 60 * 1000)
+    expect(manager.getTask(task.id)).toBeDefined()
+    manager.shutdown()
+  })
+
+  test("should drop a completed task at the TTL without rewriting it as an error", () => {
+    // #given
+    const manager = createManager()
+    const task = completedTask("task-expired", TASK_TTL_MS + 60_000)
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    manager["pruneStaleTasksAndNotifications"]()
+
+    // #then
+    expect(manager.getTask(task.id)).toBeUndefined()
+    expect(task.status).toBe("completed")
+    expect(task.error).toBeUndefined()
+    manager.shutdown()
+  })
+
+  test("should keep a long-running task rather than dropping its handle at the TTL", () => {
+    // #given
+    const manager = createManager()
+    const task: BackgroundTask = {
+      ...completedTask("task-longrun", TASK_TTL_MS + 60_000),
+      status: "running",
+      completedAt: undefined,
+      result: undefined,
+      progress: { toolCalls: 12, lastUpdate: new Date() },
+    }
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    manager["pruneStaleTasksAndNotifications"]()
+
+    // #then
+    expect(manager.getTask(task.id)).toBeDefined()
+    expect(task.status).toBe("running")
+    expect(task.error).toBeUndefined()
+    manager.shutdown()
+  })
+
+  test("should not time out a task merely for sitting queued", () => {
+    // #given
+    const manager = createManager()
+    const task: BackgroundTask = {
+      ...completedTask("task-queued", 0),
+      status: "pending",
+      startedAt: undefined,
+      completedAt: undefined,
+      result: undefined,
+      queuedAt: new Date(Date.now() - (TASK_TTL_MS + 60_000)),
+    }
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    manager["pruneStaleTasksAndNotifications"]()
+
+    // #then
+    expect(manager.getTask(task.id)).toBeDefined()
+    expect(task.status).toBe("pending")
+    expect(task.error).toBeUndefined()
     manager.shutdown()
   })
 })
