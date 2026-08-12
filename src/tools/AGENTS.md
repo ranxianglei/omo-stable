@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-20+ tools: LSP (6), AST-Grep (2), Search (2), Session (4), Agent delegation (4), System (2), Commands (1). Skills are handled by opencode-native (host `skill` tool), not by omo-stable.
+19 tools: LSP (6), AST-Grep (2), Search (2), Session (4), Agent delegation (4), System (1). Skills are handled by opencode-native (host `skill` tool), not by omo-stable.
 
 ## STRUCTURE
 
@@ -20,8 +20,6 @@ tools/
 ├── grep/             # Custom grep with timeout
 ├── glob/             # 60s timeout, 100 file limit
 ├── interactive-bash/ # Tmux session management
-├── look-at/          # Multimodal PDF/image
-├── slashcommand/     # Slash command dispatch
 ├── call-omo-agent/   # Direct agent invocation
 └── background-task/  # background_output, background_cancel (513 lines)
 ```
@@ -34,8 +32,7 @@ tools/
 | Search | ast_grep_search, ast_grep_replace, grep, glob | Pattern discovery |
 | Session | session_list, session_read, session_search, session_info | History navigation |
 | Agent | delegate_task, call_omo_agent, background_output, background_cancel | Task orchestration |
-| System | interactive_bash, look_at | CLI, multimodal |
-| Commands | slashcommand | Slash command dispatch |
+| System | interactive_bash | CLI |
 
 ## HOW TO ADD
 
