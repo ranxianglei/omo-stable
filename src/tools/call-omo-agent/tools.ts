@@ -108,15 +108,17 @@ async function executeBackground(
       parentAgent,
     })
 
+    const launchedSessionID = await manager.waitForSessionID(task)
+
     toolContext.metadata?.({
       title: args.description,
-      metadata: { sessionId: task.sessionID },
+      metadata: { sessionId: launchedSessionID },
     })
 
     return `Background agent task launched successfully.
 
 Task ID: ${task.id}
-Session ID: ${task.sessionID}
+Session ID: ${launchedSessionID ?? "(starting)"}
 Description: ${task.description}
 Agent: ${task.agent} (subagent)
 Status: ${task.status}

@@ -49,9 +49,58 @@ interface Todo {
   id: string
 }
 
+/** Title prefix stamped on background child sessions by startTask(). */
+const BACKGROUND_SESSION_TITLE_PREFIX = "Background: "
+/** How many session generations to walk when recovering orphaned tasks. */
+const REHYDRATE_MAX_DEPTH = 2
+
+interface ChildSessionInfo {
+  id: string
+  title?: string
+  /** Session this child was discovered under; nested tasks are not children of the root. */
+  discoveredUnder?: string
+}
+
+interface RecoveredMessageInfo {
+  role?: string
+  agent?: string
+  model?: { providerID?: string; modelID?: string }
+  error?: unknown
+  time?: unknown
+}
+
+interface RecoveredMessage {
+  info?: RecoveredMessageInfo
+}
+
+type SessionOutcome = Exclude<BackgroundTask["status"], "pending" | "running">
+
 interface QueueItem {
   task: BackgroundTask
   input: LaunchInput
+}
+
+/**
+ * Message `info.time` is not consistently shaped across the codebase: some paths
+ * treat it as a string, others as `{created, completed}` epoch numbers. Anything
+ * unparseable yields undefined so callers never build an Invalid Date.
+ */
+export function toEpochMs(time: unknown): number | undefined {
+  if (typeof time === "number") {
+    return Number.isFinite(time) ? time : undefined
+  }
+
+  if (typeof time === "string") {
+    const parsed = Date.parse(time)
+    return Number.isNaN(parsed) ? undefined : parsed
+  }
+
+  if (time && typeof time === "object") {
+    const { completed, created } = time as { completed?: unknown; created?: unknown }
+    return toEpochMs(completed) ?? toEpochMs(created)
+  }
+
+  return undefined
 }
 
 export class BackgroundManager {
@@ -204,7 +253,7 @@ export class BackgroundManager {
     const createResult = await this.client.session.create({
       body: {
         parentID: input.parentSessionID,
-        title: `Background: ${input.description}`,
+        title: `${BACKGROUND_SESSION_TITLE_PREFIX}${input.description}`,
       },
       query: {
         directory: parentDirectory,
@@ -327,6 +376,25 @@ export class BackgroundManager {
       }
     }
     return undefined
+  }
+
+  /** Look up a task by its own id or by its child session id. */
+  resolveTask(idOrSessionID: string): BackgroundTask | undefined {
+    return this.getTask(idOrSessionID) ?? this.findBySession(idOrSessionID)
+  }
+
+  /**
+   * Wait briefly for a queued task's child session to exist. launch() returns while
+   * the task is still pending, so callers that report the session id must wait or
+   * they publish `undefined` and leave nothing to recover from after a restart.
+   */
+  async waitForSessionID(task: BackgroundTask, timeoutMs = 5000): Promise<string | undefined> {
+    const deadline = Date.now() + timeoutMs
+    while (!task.sessionID && Date.now() < deadline) {
+      if (task.status === "cancelled" || task.status === "error") break
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    return task.sessionID
   }
 
   private getConcurrencyKeyFromInput(input: LaunchInput): string {
@@ -547,6 +615,171 @@ export class BackgroundManager {
       return incomplete.length > 0
     } catch {
       return false
+    }
+  }
+
+  /**
+   * Rebuild task records for background sessions that outlived the process which
+   * launched them. The registry is in-memory only, so a killed process loses every
+   * task record while the child sessions themselves survive in opencode storage.
+   */
+  async rehydrateFromSessions(parentSessionID: string): Promise<BackgroundTask[]> {
+    if (!parentSessionID) return []
+
+    const candidates = await this.listBackgroundChildren(parentSessionID, REHYDRATE_MAX_DEPTH)
+    if (candidates.length === 0) return []
+
+    const liveStatuses = await this.fetchSessionStatuses()
+    const recovered: BackgroundTask[] = []
+
+    for (const child of candidates) {
+      if (this.findBySession(child.id)) continue
+
+      const messages = await this.fetchSessionMessages(child.id)
+      const description = child.title?.slice(BACKGROUND_SESSION_TITLE_PREFIX.length) ?? child.id
+      const metadata = this.recoverSessionMetadata(messages)
+      const isLive = liveStatuses[child.id] !== undefined && liveStatuses[child.id].type !== "idle"
+      const rehydratedAt = new Date()
+
+      const task: BackgroundTask = {
+        id: `bg_${child.id.slice(-8)}`,
+        sessionID: child.id,
+        parentSessionID: child.discoveredUnder ?? parentSessionID,
+        parentMessageID: "",
+        description,
+        prompt: "",
+        agent: metadata.agent ?? "unknown",
+        status: "running",
+        startedAt: metadata.startedAt ?? rehydratedAt,
+        model: metadata.model,
+        rehydrated: true,
+        rehydratedAt,
+      }
+
+      if (isLive) {
+        task.progress = { toolCalls: 0, lastUpdate: rehydratedAt }
+      } else {
+        const outcome = await this.classifySessionOutcome(child.id, messages)
+        task.status = outcome.status
+        task.error = outcome.error
+        task.completedAt = metadata.completedAt ?? rehydratedAt
+      }
+
+      this.tasks.set(task.id, task)
+      subagentSessions.add(child.id)
+      recovered.push(task)
+
+      log("[background-agent] Rehydrated task from session:", {
+        taskId: task.id,
+        sessionID: child.id,
+        status: task.status,
+      })
+    }
+
+    if (recovered.some((task) => task.status === "running")) {
+      this.startPolling()
+    }
+
+    return recovered
+  }
+
+  private async listBackgroundChildren(
+    sessionID: string,
+    depth: number
+  ): Promise<ChildSessionInfo[]> {
+    if (depth <= 0) return []
+
+    let children: ChildSessionInfo[]
+    try {
+      const response = await this.client.session.children({ path: { id: sessionID } })
+      children = (response.data ?? []) as ChildSessionInfo[]
+    } catch (error) {
+      log("[background-agent] Failed to list child sessions:", { sessionID, error })
+      return []
+    }
+
+    const result: ChildSessionInfo[] = []
+    for (const child of children) {
+      if (!child?.id) continue
+      if (child.title?.startsWith(BACKGROUND_SESSION_TITLE_PREFIX)) {
+        result.push({ ...child, discoveredUnder: sessionID })
+      }
+      result.push(...(await this.listBackgroundChildren(child.id, depth - 1)))
+    }
+    return result
+  }
+
+  private async fetchSessionStatuses(): Promise<Record<string, { type: string }>> {
+    try {
+      const response = await this.client.session.status()
+      return (response.data ?? {}) as Record<string, { type: string }>
+    } catch (error) {
+      log("[background-agent] Failed to fetch session statuses:", error)
+      return {}
+    }
+  }
+
+  /** Returns undefined when the session could not be read, which must not look like success. */
+  private async fetchSessionMessages(sessionID: string): Promise<RecoveredMessage[] | undefined> {
+    try {
+      const response = await this.client.session.messages({ path: { id: sessionID } })
+      if (response.error || !response.data) return undefined
+      return response.data as RecoveredMessage[]
+    } catch (error) {
+      log("[background-agent] Failed to read session messages:", { sessionID, error })
+      return undefined
+    }
+  }
+
+  private async classifySessionOutcome(
+    sessionID: string,
+    messages: RecoveredMessage[] | undefined
+  ): Promise<{ status: SessionOutcome; error?: string }> {
+    if (!messages) {
+      return { status: "error", error: "Recovery failed: could not read session messages" }
+    }
+
+    const lastAssistant = [...messages].reverse().find((m) => m.info?.role === "assistant")
+    if (lastAssistant?.info?.error) {
+      const raw = lastAssistant.info.error
+      const message = typeof raw === "string" ? raw : JSON.stringify(raw)
+      return { status: "error", error: message }
+    }
+
+    const hasOutput = messages.some(
+      (m) => m.info?.role === "assistant" || m.info?.role === "tool"
+    )
+    if (!hasOutput) {
+      return { status: "cancelled", error: "Session produced no output before the process exited" }
+    }
+
+    if (await this.checkSessionTodos(sessionID)) {
+      return { status: "cancelled", error: "Session was interrupted with incomplete todos" }
+    }
+
+    return { status: "completed" }
+  }
+
+  private recoverSessionMetadata(messages: RecoveredMessage[] | undefined): {
+    agent?: string
+    model?: { providerID: string; modelID: string }
+    startedAt?: Date
+    completedAt?: Date
+  } {
+    if (!messages || messages.length === 0) return {}
+
+    const lastUser = [...messages].reverse().find((m) => m.info?.role === "user")
+    const providerID = lastUser?.info?.model?.providerID
+    const modelID = lastUser?.info?.model?.modelID
+
+    const firstTime = toEpochMs(messages[0]?.info?.time)
+    const lastTime = toEpochMs(messages[messages.length - 1]?.info?.time)
+
+    return {
+      agent: lastUser?.info?.agent,
+      model: providerID && modelID ? { providerID, modelID } : undefined,
+      startedAt: firstTime === undefined ? undefined : new Date(firstTime),
+      completedAt: lastTime === undefined ? undefined : new Date(lastTime),
     }
   }
 
@@ -1043,6 +1276,10 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     const now = Date.now()
 
     for (const [taskId, task] of this.tasks.entries()) {
+      // Rehydrated records carry their original timestamps, which are usually
+      // older than the TTL; pruning them would undo the recovery.
+      if (task.rehydrated) continue
+
       const timestamp = task.status === "pending" 
         ? task.queuedAt?.getTime() 
         : task.startedAt?.getTime()
@@ -1105,10 +1342,14 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
       const sessionID = task.sessionID
       if (!startedAt || !sessionID) continue
 
-      const runtime = now - startedAt.getTime()
+      const runtime = now - (task.rehydratedAt?.getTime() ?? startedAt.getTime())
       if (runtime < MIN_RUNTIME_BEFORE_STALE_MS) continue
 
-      const timeSinceLastUpdate = now - task.progress.lastUpdate.getTime()
+      const lastUpdate = Math.max(
+        task.progress.lastUpdate.getTime(),
+        task.rehydratedAt?.getTime() ?? 0
+      )
+      const timeSinceLastUpdate = now - lastUpdate
       if (timeSinceLastUpdate <= staleTimeoutMs) continue
 
       if (task.status !== "running") continue

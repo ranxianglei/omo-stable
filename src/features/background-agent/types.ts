@@ -41,6 +41,11 @@ export interface BackgroundTask {
   lastMsgCount?: number
   /** Number of consecutive polls with stable message count */
   stablePolls?: number
+
+  /** Rebuilt from session data after a process restart, not launched by this process */
+  rehydrated?: boolean
+  /** When the record was rebuilt; prune/stale windows measure from here, not startedAt */
+  rehydratedAt?: Date
 }
 
 export interface LaunchInput {
