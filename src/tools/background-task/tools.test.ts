@@ -100,7 +100,7 @@ describe("background tools - recovery after process restart", () => {
   })
 
   test("background_output should list recoverable sessions for an unresolvable id", async () => {
-    // #given - a task id minted by the previous process cannot be derived from a session
+    // #given - the requested session is gone, but a sibling background session survives
     fixture.childrenByParent[PARENT] = [{ id: "ses_orphan", title: "Background: Orphan job" }]
     fixture.messagesBySession["ses_orphan"] = [
       { info: { role: "user", agent: "explorer" } },
@@ -110,12 +110,12 @@ describe("background tools - recovery after process restart", () => {
 
     // #when
     const result = await outputTool.execute(
-      { task_id: "bg_deadbeef" },
+      { task_id: "ses_vanished" },
       createToolContext(PARENT)
     )
 
     // #then
-    expect(result).toContain("Task not found: bg_deadbeef")
+    expect(result).toContain("Task not found: ses_vanished")
     expect(result).toContain("ses_orphan")
     expect(result).toContain("Orphan job")
   })

@@ -145,13 +145,17 @@ export class BackgroundManager {
       throw new Error("Agent parameter is required")
     }
 
-    // Create task immediately with status="pending"
+    // Create the session first: its id IS the task handle, and a failure here
+    // must leave no task, no pending entry and no toast behind.
+    const sessionID = await this.createChildSession(input.parentSessionID, input.description)
+    subagentSessions.add(sessionID)
+
     const task: BackgroundTask = {
-      id: `bg_${crypto.randomUUID().slice(0, 8)}`,
+      id: sessionID,
+      sessionID,
       status: "pending",
       queuedAt: new Date(),
       // Do NOT set startedAt - will be set when running
-      // Do NOT set sessionID - will be set when running
       description: input.description,
       prompt: input.prompt,
       agent: input.agent,
@@ -230,6 +234,33 @@ export class BackgroundManager {
     }
   }
 
+  private async createChildSession(parentSessionID: string, description: string): Promise<string> {
+    const parentSession = await this.client.session.get({
+      path: { id: parentSessionID },
+    }).catch((err) => {
+      log(`[background-agent] Failed to get parent session: ${err}`)
+      return null
+    })
+    const parentDirectory = parentSession?.data?.directory ?? this.directory
+    log(`[background-agent] Parent dir: ${parentSession?.data?.directory}, using: ${parentDirectory}`)
+
+    const createResult = await this.client.session.create({
+      body: {
+        parentID: parentSessionID,
+        title: `${BACKGROUND_SESSION_TITLE_PREFIX}${description}`,
+      },
+      query: {
+        directory: parentDirectory,
+      },
+    })
+
+    if (createResult.error || !createResult.data) {
+      throw new Error(`Failed to create background session: ${createResult.error}`)
+    }
+
+    return createResult.data.id
+  }
+
   private async startTask(item: QueueItem): Promise<void> {
     const { task, input } = item
 
@@ -240,41 +271,14 @@ export class BackgroundManager {
     })
 
     const concurrencyKey = this.getConcurrencyKeyFromInput(input)
-
-    const parentSession = await this.client.session.get({
-      path: { id: input.parentSessionID },
-    }).catch((err) => {
-      log(`[background-agent] Failed to get parent session: ${err}`)
-      return null
-    })
-    const parentDirectory = parentSession?.data?.directory ?? this.directory
-    log(`[background-agent] Parent dir: ${parentSession?.data?.directory}, using: ${parentDirectory}`)
-
-    const createResult = await this.client.session.create({
-      body: {
-        parentID: input.parentSessionID,
-        title: `${BACKGROUND_SESSION_TITLE_PREFIX}${input.description}`,
-      },
-      query: {
-        directory: parentDirectory,
-      },
-    }).catch((error) => {
-      this.concurrencyManager.release(concurrencyKey)
-      throw error
-    })
-
-    if (createResult.error) {
-      this.concurrencyManager.release(concurrencyKey)
-      throw new Error(`Failed to create background session: ${createResult.error}`)
+    const sessionID = task.sessionID
+    if (!sessionID) {
+      throw new Error(`Task has no session to start: ${task.id}`)
     }
-
-    const sessionID = createResult.data.id
-    subagentSessions.add(sessionID)
 
     // Update task to running state
     task.status = "running"
     task.startedAt = new Date()
-    task.sessionID = sessionID
     task.progress = {
       toolCalls: 0,
       lastUpdate: new Date(),
@@ -383,20 +387,6 @@ export class BackgroundManager {
     return this.getTask(idOrSessionID) ?? this.findBySession(idOrSessionID)
   }
 
-  /**
-   * Wait briefly for a queued task's child session to exist. launch() returns while
-   * the task is still pending, so callers that report the session id must wait or
-   * they publish `undefined` and leave nothing to recover from after a restart.
-   */
-  async waitForSessionID(task: BackgroundTask, timeoutMs = 5000): Promise<string | undefined> {
-    const deadline = Date.now() + timeoutMs
-    while (!task.sessionID && Date.now() < deadline) {
-      if (task.status === "cancelled" || task.status === "error") break
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
-    return task.sessionID
-  }
-
   private getConcurrencyKeyFromInput(input: LaunchInput): string {
     if (input.model) {
       return `${input.model.providerID}/${input.model.modelID}`
@@ -409,7 +399,6 @@ export class BackgroundManager {
    * This allows tasks created by other tools to receive the same toast/prompt notifications.
    */
   async trackTask(input: {
-    taskId: string
     sessionID: string
     parentSessionID: string
     description: string
@@ -417,7 +406,7 @@ export class BackgroundManager {
     parentAgent?: string
     concurrencyKey?: string
   }): Promise<BackgroundTask> {
-    const existingTask = this.tasks.get(input.taskId)
+    const existingTask = this.tasks.get(input.sessionID)
     if (existingTask) {
       // P2 fix: Clean up old parent's pending set BEFORE changing parent
       // Otherwise cleanupPendingByParent would use the new parent ID
@@ -461,7 +450,7 @@ export class BackgroundManager {
     }
 
     const task: BackgroundTask = {
-      id: input.taskId,
+      id: input.sessionID,
       sessionID: input.sessionID,
       parentSessionID: input.parentSessionID,
       parentMessageID: "",
@@ -510,6 +499,14 @@ export class BackgroundManager {
         sessionID: existingTask.sessionID,
       })
       return existingTask
+    }
+
+    // A queued task owns its session but has not been prompted yet; resuming it
+    // here would prompt it a second time once the queue reaches it.
+    if (existingTask.status === "pending") {
+      throw new Error(
+        `Task is still queued and has not started yet: ${existingTask.id}. Wait for it to start before continuing it.`
+      )
     }
 
     // Re-acquire concurrency using the persisted concurrency group
@@ -642,7 +639,7 @@ export class BackgroundManager {
       const rehydratedAt = new Date()
 
       const task: BackgroundTask = {
-        id: `bg_${child.id.slice(-8)}`,
+        id: child.id,
         sessionID: child.id,
         parentSessionID: child.discoveredUnder ?? parentSessionID,
         parentMessageID: "",
@@ -737,6 +734,10 @@ export class BackgroundManager {
   ): Promise<{ status: SessionOutcome; error?: string }> {
     if (!messages) {
       return { status: "error", error: "Recovery failed: could not read session messages" }
+    }
+
+    if (messages.length === 0) {
+      return { status: "cancelled", error: "Never started: still queued when the process exited" }
     }
 
     const lastAssistant = [...messages].reverse().find((m) => m.info?.role === "assistant")
@@ -872,6 +873,15 @@ export class BackgroundManager {
         task.error = "Session deleted"
       }
 
+      // A queued task owns a session too; drop its queue entry so processKey
+      // never tries to start a session that no longer exists.
+      if (task.status === "pending") {
+        this.dequeueTask(task)
+        task.status = "cancelled"
+        task.completedAt = new Date()
+        task.error = "Session deleted"
+      }
+
        if (task.concurrencyKey) {
          this.concurrencyManager.release(task.concurrencyKey)
          task.concurrencyKey = undefined
@@ -986,7 +996,7 @@ export class BackgroundManager {
 
   /**
    * Cancels a pending task by removing it from queue and marking as cancelled.
-   * Does NOT abort session (no session exists yet) or release concurrency slot (wasn't acquired).
+   * Does NOT release a concurrency slot (it was never acquired for a queued task).
    */
   cancelPendingTask(taskId: string): boolean {
     const task = this.tasks.get(taskId)
@@ -994,20 +1004,7 @@ export class BackgroundManager {
       return false
     }
 
-    // Find and remove from queue
-    const key = task.model 
-      ? `${task.model.providerID}/${task.model.modelID}`
-      : task.agent
-    const queue = this.queuesByKey.get(key)
-    if (queue) {
-      const index = queue.findIndex(item => item.task.id === taskId)
-      if (index !== -1) {
-        queue.splice(index, 1)
-        if (queue.length === 0) {
-          this.queuesByKey.delete(key)
-        }
-      }
-    }
+    this.dequeueTask(task)
 
     // Mark as cancelled
     task.status = "cancelled"
@@ -1016,8 +1013,25 @@ export class BackgroundManager {
     // Clean up pendingByParent
     this.cleanupPendingByParent(task)
 
-    log("[background-agent] Cancelled pending task:", { taskId, key })
+    log("[background-agent] Cancelled pending task:", { taskId })
     return true
+  }
+
+  /** Remove a task's queue entry so it will never be started. */
+  private dequeueTask(task: BackgroundTask): void {
+    const key = task.model
+      ? `${task.model.providerID}/${task.model.modelID}`
+      : task.agent
+    const queue = this.queuesByKey.get(key)
+    if (!queue) return
+
+    const index = queue.findIndex(item => item.task.id === task.id)
+    if (index === -1) return
+
+    queue.splice(index, 1)
+    if (queue.length === 0) {
+      this.queuesByKey.delete(key)
+    }
   }
 
   private startPolling(): void {

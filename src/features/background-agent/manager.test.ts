@@ -980,7 +980,6 @@ describe("BackgroundManager.trackTask", () => {
   test("should not double acquire on duplicate registration", async () => {
     // #given
     const input = {
-      taskId: "task-1",
       sessionID: "session-1",
       parentSessionID: "parent-session",
       description: "external task",
@@ -1015,7 +1014,6 @@ describe("BackgroundManager.resume concurrency key", () => {
   test("should re-acquire using external task concurrency key", async () => {
     // #given
     const task = await manager.trackTask({
-      taskId: "task-1",
       sessionID: "session-1",
       parentSessionID: "parent-session",
       description: "external task",
@@ -1194,13 +1192,12 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
       const task = await manager.launch(input)
 
       // #then
-      expect(task.status).toBe("pending")
-      expect(task.id).toMatch(/^bg_/)
+      expect(["pending", "running"]).toContain(task.status)
+      expect(task.sessionID).toBe(task.id)
       expect(task.description).toBe("Test task")
       expect(task.agent).toBe("test-agent")
       expect(task.queuedAt).toBeInstanceOf(Date)
-      expect(task.startedAt).toBeUndefined()
-      expect(task.sessionID).toBeUndefined()
+      expect(task.sessionID).toBeDefined()
     })
 
     test("should return immediately even with concurrency limit", async () => {
@@ -1225,8 +1222,8 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
 
       // #then
       expect(endTime - startTime).toBeLessThan(100) // Should be instant
-      expect(task1.status).toBe("pending")
-      expect(task2.status).toBe("pending")
+      expect(["pending", "running"]).toContain(task1.status)
+      expect(["pending", "running"]).toContain(task2.status)
     })
 
     test("should queue multiple tasks without blocking", async () => {
@@ -1255,7 +1252,7 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
       // #then
       expect(tasks).toHaveLength(5)
       tasks.forEach(task => {
-        expect(task.status).toBe("pending")
+        expect(["pending", "running"]).toContain(task.status)
         expect(task.queuedAt).toBeInstanceOf(Date)
       })
     })
@@ -1658,8 +1655,8 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
       expect(endTime - startTime).toBeLessThan(200) // Should be very fast
       expect(tasks).toHaveLength(10)
       tasks.forEach(task => {
-        expect(task.status).toBe("pending")
-        expect(task.id).toMatch(/^bg_/)
+        expect(["pending", "running"]).toContain(task.status)
+        expect(task.sessionID).toBe(task.id)
       })
 
       // Wait for processing
@@ -2056,10 +2053,10 @@ describe("BackgroundManager - session rehydration after process restart", () => 
   })
 
   describe("resolveTask", () => {
-    test("should resolve by task id, by session id, and miss otherwise", () => {
+    test("should resolve a task by its session id and miss otherwise", () => {
       // #given
       const task: BackgroundTask = {
-        id: "bg_known",
+        id: "ses_known",
         sessionID: "ses_known",
         parentSessionID: "parent",
         parentMessageID: "msg",
@@ -2071,9 +2068,26 @@ describe("BackgroundManager - session rehydration after process restart", () => 
       manager["tasks"].set(task.id, task)
 
       // #when / #then
-      expect(manager.resolveTask("bg_known")).toBe(task)
       expect(manager.resolveTask("ses_known")).toBe(task)
       expect(manager.resolveTask("ses_unknown")).toBeUndefined()
+    })
+
+    test("should fall back to a session scan when the map key diverges", () => {
+      // #given
+      const task: BackgroundTask = {
+        id: "legacy-key",
+        sessionID: "ses_scanned",
+        parentSessionID: "parent",
+        parentMessageID: "msg",
+        description: "Divergent task",
+        prompt: "Test",
+        agent: "test-agent",
+        status: "running",
+      }
+      manager["tasks"].set(task.id, task)
+
+      // #when / #then
+      expect(manager.resolveTask("ses_scanned")).toBe(task)
     })
   })
 
@@ -2097,7 +2111,7 @@ describe("BackgroundManager - session rehydration after process restart", () => 
       expect(task.rehydrated).toBe(true)
       expect(task.rehydratedAt).toBeInstanceOf(Date)
       expect(task.concurrencyKey).toBeUndefined()
-      expect(task.id).toMatch(/^bg_/)
+      expect(task.id).toBe("ses_busy")
       expect(manager.resolveTask("ses_busy")).toBe(task)
     })
 
@@ -2240,62 +2254,6 @@ describe("BackgroundManager - session rehydration after process restart", () => 
   })
 })
 
-describe("BackgroundManager.waitForSessionID", () => {
-  test("should return the session id once the task has started", async () => {
-    // #given
-    const client = { session: { prompt: async () => ({}) } }
-    const manager = new BackgroundManager(
-      { client, directory: tmpdir() } as unknown as PluginInput
-    )
-    const task: BackgroundTask = {
-      id: "bg_wait",
-      parentSessionID: "parent",
-      parentMessageID: "msg",
-      description: "Waiting task",
-      prompt: "Test",
-      agent: "test-agent",
-      status: "pending",
-      queuedAt: new Date(),
-    }
-    setTimeout(() => {
-      task.sessionID = "ses_started"
-      task.status = "running"
-    }, 120)
-
-    // #when
-    const sessionID = await manager.waitForSessionID(task, 3000)
-
-    // #then
-    expect(sessionID).toBe("ses_started")
-    manager.shutdown()
-  })
-
-  test("should give up immediately when the task failed before starting", async () => {
-    // #given
-    const client = { session: { prompt: async () => ({}) } }
-    const manager = new BackgroundManager(
-      { client, directory: tmpdir() } as unknown as PluginInput
-    )
-    const task: BackgroundTask = {
-      id: "bg_failed",
-      parentSessionID: "parent",
-      parentMessageID: "msg",
-      description: "Failed task",
-      prompt: "Test",
-      agent: "test-agent",
-      status: "error",
-    }
-
-    // #when
-    const started = Date.now()
-    const sessionID = await manager.waitForSessionID(task, 3000)
-
-    // #then
-    expect(sessionID).toBeUndefined()
-    expect(Date.now() - started).toBeLessThan(1000)
-    manager.shutdown()
-  })
-})
 
 describe("BackgroundManager - completed task retention", () => {
   function createManager(): BackgroundManager {
@@ -2408,6 +2366,106 @@ describe("BackgroundManager - completed task retention", () => {
     expect(manager.getTask(task.id)).toBeDefined()
     expect(task.status).toBe("pending")
     expect(task.error).toBeUndefined()
+    manager.shutdown()
+  })
+})
+
+describe("BackgroundManager - session id is the task handle", () => {
+  const LAUNCH_INPUT = {
+    description: "Handle task",
+    prompt: "Do something",
+    agent: "test-agent",
+    parentSessionID: "ses_parent",
+    parentMessageID: "msg_parent",
+  }
+
+  function createManager(overrides: {
+    createFails?: boolean
+    onPrompt?: () => void
+  } = {}): BackgroundManager {
+    const client = {
+      session: {
+        get: async () => ({ data: { directory: "/test/dir" } }),
+        create: async () =>
+          overrides.createFails
+            ? { error: { message: "quota exceeded" } }
+            : { data: { id: `ses_${crypto.randomUUID()}` } },
+        prompt: async () => {
+          overrides.onPrompt?.()
+          return {}
+        },
+        messages: async () => ({ data: [] }),
+        todo: async () => ({ data: [] }),
+        status: async () => ({ data: {} }),
+        abort: async () => ({}),
+      },
+    }
+    return new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+  }
+
+  test("should register a launched task under its session id", async () => {
+    // #given
+    const manager = createManager()
+
+    // #when
+    const task = await manager.launch(LAUNCH_INPUT)
+
+    // #then
+    expect(task.sessionID).toBeDefined()
+    expect(task.sessionID).toBe(task.id)
+    expect(manager.getTask(task.sessionID as string)).toBe(task)
+    manager.shutdown()
+  })
+
+  test("should register nothing when the session cannot be created", async () => {
+    // #given
+    const manager = createManager({ createFails: true })
+
+    // #when
+    const launch = manager.launch(LAUNCH_INPUT)
+
+    // #then
+    await expect(launch).rejects.toThrow()
+    expect(manager["tasks"].size).toBe(0)
+    expect(manager["pendingByParent"].size).toBe(0)
+    expect(manager["queuesByKey"].size).toBe(0)
+    manager.shutdown()
+  })
+
+  test("should refuse to resume a task that is still queued", async () => {
+    // #given
+    const manager = createManager()
+    const task = await manager.launch(LAUNCH_INPUT)
+    task.status = "pending"
+
+    // #when
+    const resumed = manager.resume({
+      sessionId: task.sessionID as string,
+      prompt: "continue",
+      parentSessionID: "ses_parent",
+      parentMessageID: "msg_parent",
+    })
+
+    // #then
+    await expect(resumed).rejects.toThrow(/queued/)
+    manager.shutdown()
+  })
+
+  test("should drop the queue entry when a queued task's session is deleted", async () => {
+    // #given
+    const manager = createManager()
+    const task = await manager.launch(LAUNCH_INPUT)
+    task.status = "pending"
+
+    // #when
+    manager.handleEvent({
+      type: "session.deleted",
+      properties: { info: { id: task.sessionID } },
+    })
+
+    // #then
+    const queued = Array.from(manager["queuesByKey"].values()).flat()
+    expect(queued.some(item => item.task.id === task.id)).toBe(false)
     manager.shutdown()
   })
 })

@@ -737,8 +737,6 @@ Sisyphus-Junior is spawned automatically when you specify a category. Pick the a
             model: categoryModel,
           })
 
-          const launchedSessionID = await manager.waitForSessionID(task)
-
           ctx.metadata?.({
             title: args.description,
             metadata: {
@@ -747,7 +745,7 @@ Sisyphus-Junior is spawned automatically when you specify a category. Pick the a
               category: args.category,
               description: args.description,
               run_in_background: args.run_in_background,
-              sessionId: launchedSessionID,
+              sessionId: task.sessionID,
               command: args.command,
             },
           })
@@ -755,13 +753,13 @@ Sisyphus-Junior is spawned automatically when you specify a category. Pick the a
           return `Background task launched.
 
 Task ID: ${task.id}
-Session ID: ${launchedSessionID ?? "(starting)"}
+Session ID: ${task.sessionID}
 Description: ${task.description}
 Agent: ${task.agent}${args.category ? ` (category: ${args.category})` : ""}
 Status: ${task.status}
 
 System notifies on completion. Use \`background_output\` with task_id="${task.id}" to check.
-To continue this session: session_id="${launchedSessionID ?? task.id}"`
+To continue this session: session_id="${task.sessionID}"`
         } catch (error) {
           return formatDetailedError(error, {
             operation: "Launch background task",

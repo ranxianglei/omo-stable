@@ -58,8 +58,8 @@ delegate_task(agent="explore", background=true, prompt="Find auth implementation
 # Continue working...
 # System notifies on completion
 
-# Retrieve results when needed
-background_output(task_id="bg_abc123")
+# Retrieve results when needed (the task id is the child session id)
+background_output(task_id="ses_abc123")
 ```
 
 Customize agent models, prompts, and permissions in `omo-stable.json`. See [Configuration](configurations.md#agents).

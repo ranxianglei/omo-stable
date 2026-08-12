@@ -93,17 +93,15 @@ export function createBackgroundTask(manager: BackgroundManager): ToolDefinition
           parentAgent,
         })
 
-        const launchedSessionID = await manager.waitForSessionID(task)
-
         ctx.metadata?.({
           title: args.description,
-          metadata: { sessionId: launchedSessionID },
+          metadata: { sessionId: task.sessionID },
         })
 
         return `Background task launched successfully.
 
 Task ID: ${task.id}
-Session ID: ${launchedSessionID ?? "(starting)"}
+Session ID: ${task.sessionID}
 Description: ${task.description}
 Agent: ${task.agent}
 Status: ${task.status}
