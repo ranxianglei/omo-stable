@@ -2,14 +2,13 @@
 
 ## OVERVIEW
 
-3 remote MCP servers: web search, documentation, code search. HTTP/SSE transport.
+2 remote MCP servers: documentation, code search. HTTP/SSE transport.
 
 ## STRUCTURE
 
 ```
 mcp/
 ├── index.ts        # createBuiltinMcps() factory
-├── websearch.ts    # Exa AI web search
 ├── context7.ts     # Library documentation
 ├── grep-app.ts     # GitHub code search
 ├── types.ts        # McpNameSchema
@@ -20,7 +19,6 @@ mcp/
 
 | Name | URL | Purpose | Auth |
 |------|-----|---------|------|
-| websearch | mcp.exa.ai | Real-time web search | EXA_API_KEY |
 | context7 | mcp.context7.com | Library docs | None |
 | grep_app | mcp.grep.app | GitHub code search | None |
 
@@ -42,7 +40,7 @@ export const mcp_name = {
 import { createBuiltinMcps } from "./mcp"
 
 const mcps = createBuiltinMcps()  // Enable all
-const mcps = createBuiltinMcps(["websearch"])  // Disable specific
+const mcps = createBuiltinMcps(["context7"])  // Disable specific
 ```
 
 ## HOW TO ADD
@@ -55,4 +53,3 @@ const mcps = createBuiltinMcps(["websearch"])  // Disable specific
 
 - **Remote only**: HTTP/SSE, no stdio
 - **Disable**: User can set `disabled_mcps: ["name"]`
-- **Exa**: Requires `EXA_API_KEY` env var
