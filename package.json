@@ -73,13 +73,13 @@
     "typescript": "^5.7.3"
   },
   "optionalDependencies": {
-    "omo-stable-darwin-arm64": "3.4.0",
-    "omo-stable-darwin-x64": "3.4.0",
-    "omo-stable-linux-arm64": "3.4.0",
-    "omo-stable-linux-arm64-musl": "3.4.0",
-    "omo-stable-linux-x64": "3.4.0",
-    "omo-stable-linux-x64-musl": "3.4.0",
-    "omo-stable-windows-x64": "3.4.0"
+    "omo-stable-darwin-arm64": "3.5.0",
+    "omo-stable-darwin-x64": "3.5.0",
+    "omo-stable-linux-arm64": "3.5.0",
+    "omo-stable-linux-arm64-musl": "3.5.0",
+    "omo-stable-linux-x64": "3.5.0",
+    "omo-stable-linux-x64-musl": "3.5.0",
+    "omo-stable-windows-x64": "3.5.0"
   },
   "trustedDependencies": [
     "@ast-grep/cli",
