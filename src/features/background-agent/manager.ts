@@ -17,7 +17,7 @@ import { join } from "node:path"
 
 const TASK_TTL_MS = 30 * 60 * 1000
 const MIN_STABILITY_TIME_MS = 10 * 1000  // Must run at least 10s before stability detection kicks in
-const DEFAULT_STALE_TIMEOUT_MS = 180_000  // 3 minutes
+const DEFAULT_STALE_TIMEOUT_MS = 1_200_000  // 20 minutes without activity
 const MIN_RUNTIME_BEFORE_STALE_MS = 30_000  // 30 seconds
 
 type ProcessCleanupEvent = NodeJS.Signals | "beforeExit" | "exit"
@@ -49,9 +49,58 @@ interface Todo {
   id: string
 }
 
+/** Title prefix stamped on background child sessions by startTask(). */
+const BACKGROUND_SESSION_TITLE_PREFIX = "Background: "
+/** How many session generations to walk when recovering orphaned tasks. */
+const REHYDRATE_MAX_DEPTH = 2
+
+interface ChildSessionInfo {
+  id: string
+  title?: string
+  /** Session this child was discovered under; nested tasks are not children of the root. */
+  discoveredUnder?: string
+}
+
+interface RecoveredMessageInfo {
+  role?: string
+  agent?: string
+  model?: { providerID?: string; modelID?: string }
+  error?: unknown
+  time?: unknown
+}
+
+interface RecoveredMessage {
+  info?: RecoveredMessageInfo
+}
+
+type SessionOutcome = Exclude<BackgroundTask["status"], "pending" | "running">
+
 interface QueueItem {
   task: BackgroundTask
   input: LaunchInput
+}
+
+/**
+ * Message `info.time` is not consistently shaped across the codebase: some paths
+ * treat it as a string, others as `{created, completed}` epoch numbers. Anything
+ * unparseable yields undefined so callers never build an Invalid Date.
+ */
+export function toEpochMs(time: unknown): number | undefined {
+  if (typeof time === "number") {
+    return Number.isFinite(time) ? time : undefined
+  }
+
+  if (typeof time === "string") {
+    const parsed = Date.parse(time)
+    return Number.isNaN(parsed) ? undefined : parsed
+  }
+
+  if (time && typeof time === "object") {
+    const { completed, created } = time as { completed?: unknown; created?: unknown }
+    return toEpochMs(completed) ?? toEpochMs(created)
+  }
+
+  return undefined
 }
 
 export class BackgroundManager {
@@ -96,13 +145,17 @@ export class BackgroundManager {
       throw new Error("Agent parameter is required")
     }
 
-    // Create task immediately with status="pending"
+    // Create the session first: its id IS the task handle, and a failure here
+    // must leave no task, no pending entry and no toast behind.
+    const sessionID = await this.createChildSession(input.parentSessionID, input.description)
+    subagentSessions.add(sessionID)
+
     const task: BackgroundTask = {
-      id: `bg_${crypto.randomUUID().slice(0, 8)}`,
+      id: sessionID,
+      sessionID,
       status: "pending",
       queuedAt: new Date(),
       // Do NOT set startedAt - will be set when running
-      // Do NOT set sessionID - will be set when running
       description: input.description,
       prompt: input.prompt,
       agent: input.agent,
@@ -181,6 +234,33 @@ export class BackgroundManager {
     }
   }
 
+  private async createChildSession(parentSessionID: string, description: string): Promise<string> {
+    const parentSession = await this.client.session.get({
+      path: { id: parentSessionID },
+    }).catch((err) => {
+      log(`[background-agent] Failed to get parent session: ${err}`)
+      return null
+    })
+    const parentDirectory = parentSession?.data?.directory ?? this.directory
+    log(`[background-agent] Parent dir: ${parentSession?.data?.directory}, using: ${parentDirectory}`)
+
+    const createResult = await this.client.session.create({
+      body: {
+        parentID: parentSessionID,
+        title: `${BACKGROUND_SESSION_TITLE_PREFIX}${description}`,
+      },
+      query: {
+        directory: parentDirectory,
+      },
+    })
+
+    if (createResult.error || !createResult.data) {
+      throw new Error(`Failed to create background session: ${createResult.error}`)
+    }
+
+    return createResult.data.id
+  }
+
   private async startTask(item: QueueItem): Promise<void> {
     const { task, input } = item
 
@@ -191,41 +271,14 @@ export class BackgroundManager {
     })
 
     const concurrencyKey = this.getConcurrencyKeyFromInput(input)
-
-    const parentSession = await this.client.session.get({
-      path: { id: input.parentSessionID },
-    }).catch((err) => {
-      log(`[background-agent] Failed to get parent session: ${err}`)
-      return null
-    })
-    const parentDirectory = parentSession?.data?.directory ?? this.directory
-    log(`[background-agent] Parent dir: ${parentSession?.data?.directory}, using: ${parentDirectory}`)
-
-    const createResult = await this.client.session.create({
-      body: {
-        parentID: input.parentSessionID,
-        title: `Background: ${input.description}`,
-      },
-      query: {
-        directory: parentDirectory,
-      },
-    }).catch((error) => {
-      this.concurrencyManager.release(concurrencyKey)
-      throw error
-    })
-
-    if (createResult.error) {
-      this.concurrencyManager.release(concurrencyKey)
-      throw new Error(`Failed to create background session: ${createResult.error}`)
+    const sessionID = task.sessionID
+    if (!sessionID) {
+      throw new Error(`Task has no session to start: ${task.id}`)
     }
-
-    const sessionID = createResult.data.id
-    subagentSessions.add(sessionID)
 
     // Update task to running state
     task.status = "running"
     task.startedAt = new Date()
-    task.sessionID = sessionID
     task.progress = {
       toolCalls: 0,
       lastUpdate: new Date(),
@@ -329,6 +382,11 @@ export class BackgroundManager {
     return undefined
   }
 
+  /** Look up a task by its own id or by its child session id. */
+  resolveTask(idOrSessionID: string): BackgroundTask | undefined {
+    return this.getTask(idOrSessionID) ?? this.findBySession(idOrSessionID)
+  }
+
   private getConcurrencyKeyFromInput(input: LaunchInput): string {
     if (input.model) {
       return `${input.model.providerID}/${input.model.modelID}`
@@ -341,7 +399,6 @@ export class BackgroundManager {
    * This allows tasks created by other tools to receive the same toast/prompt notifications.
    */
   async trackTask(input: {
-    taskId: string
     sessionID: string
     parentSessionID: string
     description: string
@@ -349,7 +406,7 @@ export class BackgroundManager {
     parentAgent?: string
     concurrencyKey?: string
   }): Promise<BackgroundTask> {
-    const existingTask = this.tasks.get(input.taskId)
+    const existingTask = this.tasks.get(input.sessionID)
     if (existingTask) {
       // P2 fix: Clean up old parent's pending set BEFORE changing parent
       // Otherwise cleanupPendingByParent would use the new parent ID
@@ -393,7 +450,7 @@ export class BackgroundManager {
     }
 
     const task: BackgroundTask = {
-      id: input.taskId,
+      id: input.sessionID,
       sessionID: input.sessionID,
       parentSessionID: input.parentSessionID,
       parentMessageID: "",
@@ -442,6 +499,14 @@ export class BackgroundManager {
         sessionID: existingTask.sessionID,
       })
       return existingTask
+    }
+
+    // A queued task owns its session but has not been prompted yet; resuming it
+    // here would prompt it a second time once the queue reaches it.
+    if (existingTask.status === "pending") {
+      throw new Error(
+        `Task is still queued and has not started yet: ${existingTask.id}. Wait for it to start before continuing it.`
+      )
     }
 
     // Re-acquire concurrency using the persisted concurrency group
@@ -550,6 +615,175 @@ export class BackgroundManager {
     }
   }
 
+  /**
+   * Rebuild task records for background sessions that outlived the process which
+   * launched them. The registry is in-memory only, so a killed process loses every
+   * task record while the child sessions themselves survive in opencode storage.
+   */
+  async rehydrateFromSessions(parentSessionID: string): Promise<BackgroundTask[]> {
+    if (!parentSessionID) return []
+
+    const candidates = await this.listBackgroundChildren(parentSessionID, REHYDRATE_MAX_DEPTH)
+    if (candidates.length === 0) return []
+
+    const liveStatuses = await this.fetchSessionStatuses()
+    const recovered: BackgroundTask[] = []
+
+    for (const child of candidates) {
+      if (this.findBySession(child.id)) continue
+
+      const messages = await this.fetchSessionMessages(child.id)
+      const description = child.title?.slice(BACKGROUND_SESSION_TITLE_PREFIX.length) ?? child.id
+      const metadata = this.recoverSessionMetadata(messages)
+      const isLive = liveStatuses[child.id] !== undefined && liveStatuses[child.id].type !== "idle"
+      const rehydratedAt = new Date()
+
+      const task: BackgroundTask = {
+        id: child.id,
+        sessionID: child.id,
+        parentSessionID: child.discoveredUnder ?? parentSessionID,
+        parentMessageID: "",
+        description,
+        prompt: "",
+        agent: metadata.agent ?? "unknown",
+        status: "running",
+        startedAt: metadata.startedAt ?? rehydratedAt,
+        model: metadata.model,
+        rehydrated: true,
+        rehydratedAt,
+      }
+
+      if (isLive) {
+        task.progress = { toolCalls: 0, lastUpdate: rehydratedAt }
+      } else {
+        const outcome = await this.classifySessionOutcome(child.id, messages)
+        task.status = outcome.status
+        task.error = outcome.error
+        task.completedAt = metadata.completedAt ?? rehydratedAt
+      }
+
+      this.tasks.set(task.id, task)
+      subagentSessions.add(child.id)
+      recovered.push(task)
+
+      log("[background-agent] Rehydrated task from session:", {
+        taskId: task.id,
+        sessionID: child.id,
+        status: task.status,
+      })
+    }
+
+    if (recovered.some((task) => task.status === "running")) {
+      this.startPolling()
+    }
+
+    return recovered
+  }
+
+  private async listBackgroundChildren(
+    sessionID: string,
+    depth: number
+  ): Promise<ChildSessionInfo[]> {
+    if (depth <= 0) return []
+
+    let children: ChildSessionInfo[]
+    try {
+      const response = await this.client.session.children({ path: { id: sessionID } })
+      children = (response.data ?? []) as ChildSessionInfo[]
+    } catch (error) {
+      log("[background-agent] Failed to list child sessions:", { sessionID, error })
+      return []
+    }
+
+    const result: ChildSessionInfo[] = []
+    for (const child of children) {
+      if (!child?.id) continue
+      if (child.title?.startsWith(BACKGROUND_SESSION_TITLE_PREFIX)) {
+        result.push({ ...child, discoveredUnder: sessionID })
+      }
+      result.push(...(await this.listBackgroundChildren(child.id, depth - 1)))
+    }
+    return result
+  }
+
+  private async fetchSessionStatuses(): Promise<Record<string, { type: string }>> {
+    try {
+      const response = await this.client.session.status()
+      return (response.data ?? {}) as Record<string, { type: string }>
+    } catch (error) {
+      log("[background-agent] Failed to fetch session statuses:", error)
+      return {}
+    }
+  }
+
+  /** Returns undefined when the session could not be read, which must not look like success. */
+  private async fetchSessionMessages(sessionID: string): Promise<RecoveredMessage[] | undefined> {
+    try {
+      const response = await this.client.session.messages({ path: { id: sessionID } })
+      if (response.error || !response.data) return undefined
+      return response.data as RecoveredMessage[]
+    } catch (error) {
+      log("[background-agent] Failed to read session messages:", { sessionID, error })
+      return undefined
+    }
+  }
+
+  private async classifySessionOutcome(
+    sessionID: string,
+    messages: RecoveredMessage[] | undefined
+  ): Promise<{ status: SessionOutcome; error?: string }> {
+    if (!messages) {
+      return { status: "error", error: "Recovery failed: could not read session messages" }
+    }
+
+    if (messages.length === 0) {
+      return { status: "cancelled", error: "Never started: still queued when the process exited" }
+    }
+
+    const lastAssistant = [...messages].reverse().find((m) => m.info?.role === "assistant")
+    if (lastAssistant?.info?.error) {
+      const raw = lastAssistant.info.error
+      const message = typeof raw === "string" ? raw : JSON.stringify(raw)
+      return { status: "error", error: message }
+    }
+
+    const hasOutput = messages.some(
+      (m) => m.info?.role === "assistant" || m.info?.role === "tool"
+    )
+    if (!hasOutput) {
+      return { status: "cancelled", error: "Session produced no output before the process exited" }
+    }
+
+    if (await this.checkSessionTodos(sessionID)) {
+      return { status: "cancelled", error: "Session was interrupted with incomplete todos" }
+    }
+
+    return { status: "completed" }
+  }
+
+  private recoverSessionMetadata(messages: RecoveredMessage[] | undefined): {
+    agent?: string
+    model?: { providerID: string; modelID: string }
+    startedAt?: Date
+    completedAt?: Date
+  } {
+    if (!messages || messages.length === 0) return {}
+
+    const lastUser = [...messages].reverse().find((m) => m.info?.role === "user")
+    const providerID = lastUser?.info?.model?.providerID
+    const modelID = lastUser?.info?.model?.modelID
+
+    const firstTime = toEpochMs(messages[0]?.info?.time)
+    const lastTime = toEpochMs(messages[messages.length - 1]?.info?.time)
+
+    return {
+      agent: lastUser?.info?.agent,
+      model: providerID && modelID ? { providerID, modelID } : undefined,
+      startedAt: firstTime === undefined ? undefined : new Date(firstTime),
+      completedAt: lastTime === undefined ? undefined : new Date(lastTime),
+    }
+  }
+
   handleEvent(event: Event): void {
     const props = event.properties
 
@@ -634,6 +868,15 @@ export class BackgroundManager {
       if (!task) return
 
       if (task.status === "running") {
+        task.status = "cancelled"
+        task.completedAt = new Date()
+        task.error = "Session deleted"
+      }
+
+      // A queued task owns a session too; drop its queue entry so processKey
+      // never tries to start a session that no longer exists.
+      if (task.status === "pending") {
+        this.dequeueTask(task)
         task.status = "cancelled"
         task.completedAt = new Date()
         task.error = "Session deleted"
@@ -753,7 +996,7 @@ export class BackgroundManager {
 
   /**
    * Cancels a pending task by removing it from queue and marking as cancelled.
-   * Does NOT abort session (no session exists yet) or release concurrency slot (wasn't acquired).
+   * Does NOT release a concurrency slot (it was never acquired for a queued task).
    */
   cancelPendingTask(taskId: string): boolean {
     const task = this.tasks.get(taskId)
@@ -761,20 +1004,7 @@ export class BackgroundManager {
       return false
     }
 
-    // Find and remove from queue
-    const key = task.model 
-      ? `${task.model.providerID}/${task.model.modelID}`
-      : task.agent
-    const queue = this.queuesByKey.get(key)
-    if (queue) {
-      const index = queue.findIndex(item => item.task.id === taskId)
-      if (index !== -1) {
-        queue.splice(index, 1)
-        if (queue.length === 0) {
-          this.queuesByKey.delete(key)
-        }
-      }
-    }
+    this.dequeueTask(task)
 
     // Mark as cancelled
     task.status = "cancelled"
@@ -783,8 +1013,25 @@ export class BackgroundManager {
     // Clean up pendingByParent
     this.cleanupPendingByParent(task)
 
-    log("[background-agent] Cancelled pending task:", { taskId, key })
+    log("[background-agent] Cancelled pending task:", { taskId })
     return true
+  }
+
+  /** Remove a task's queue entry so it will never be started. */
+  private dequeueTask(task: BackgroundTask): void {
+    const key = task.model
+      ? `${task.model.providerID}/${task.model.modelID}`
+      : task.agent
+    const queue = this.queuesByKey.get(key)
+    if (!queue) return
+
+    const index = queue.findIndex(item => item.task.id === task.id)
+    if (index === -1) return
+
+    queue.splice(index, 1)
+    if (queue.length === 0) {
+      this.queuesByKey.delete(key)
+    }
   }
 
   private startPolling(): void {
@@ -1006,16 +1253,6 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     } catch (error) {
       log("[background-agent] Failed to send notification:", error)
     }
-
-    const taskId = task.id
-    setTimeout(() => {
-      // Guard: Only delete if task still exists (could have been deleted by session.deleted event)
-      if (this.tasks.has(taskId)) {
-        this.clearNotificationsForTask(taskId)
-        this.tasks.delete(taskId)
-        log("[background-agent] Removed completed task from memory:", taskId)
-      }
-    }, 5 * 60 * 1000)
   }
 
   private formatDuration(start: Date, end?: Date): string {
@@ -1043,24 +1280,22 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
     const now = Date.now()
 
     for (const [taskId, task] of this.tasks.entries()) {
-      const timestamp = task.status === "pending" 
-        ? task.queuedAt?.getTime() 
-        : task.startedAt?.getTime()
-      
-      if (!timestamp) {
-        continue
-      }
-      
+      // Rehydrated records carry their original timestamps, which are usually
+      // older than the TTL; pruning them would undo the recovery.
+      if (task.rehydrated) continue
+
+      // Queued tasks are waiting for a slot and running tasks are judged by
+      // activity in checkAndInterruptStaleTasks. Dropping either here would
+      // discard the handle of an agent that is still alive.
+      if (task.status === "pending" || task.status === "running") continue
+
+      const timestamp = task.completedAt?.getTime() ?? task.startedAt?.getTime()
+      if (!timestamp) continue
+
       const age = now - timestamp
       if (age > TASK_TTL_MS) {
-        const errorMessage = task.status === "pending"
-          ? "Task timed out while queued (30 minutes)"
-          : "Task timed out after 30 minutes"
-        
-        log("[background-agent] Pruning stale task:", { taskId, status: task.status, age: Math.round(age / 1000) + "s" })
-        task.status = "error"
-        task.error = errorMessage
-        task.completedAt = new Date()
+        log("[background-agent] Reclaiming finished task:", { taskId, status: task.status, age: Math.round(age / 1000) + "s" })
+
         if (task.concurrencyKey) {
           this.concurrencyManager.release(task.concurrencyKey)
           task.concurrencyKey = undefined
@@ -1105,10 +1340,14 @@ Use \`background_output(task_id="${task.id}")\` to retrieve this result when rea
       const sessionID = task.sessionID
       if (!startedAt || !sessionID) continue
 
-      const runtime = now - startedAt.getTime()
+      const runtime = now - (task.rehydratedAt?.getTime() ?? startedAt.getTime())
       if (runtime < MIN_RUNTIME_BEFORE_STALE_MS) continue
 
-      const timeSinceLastUpdate = now - task.progress.lastUpdate.getTime()
+      const lastUpdate = Math.max(
+        task.progress.lastUpdate.getTime(),
+        task.rehydratedAt?.getTime() ?? 0
+      )
+      const timeSinceLastUpdate = now - lastUpdate
       if (timeSinceLastUpdate <= staleTimeoutMs) continue
 
       if (task.status !== "running") continue

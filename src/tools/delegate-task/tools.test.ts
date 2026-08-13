@@ -875,6 +875,7 @@ describe("sisyphus-task", () => {
             status: "running",
           }
         },
+        waitForSessionID: async (task: { sessionID?: string }) => task.sessionID,
       }
       
       const mockClient = {

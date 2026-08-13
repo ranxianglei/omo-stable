@@ -61,7 +61,7 @@ describe("sisyphus-task-retry", () => {
     })
 
     it("should return null for successful output", () => {
-      const output = "Background task launched.\n\nTask ID: bg_12345\nSession ID: ses_abc"
+      const output = "Background task launched.\n\nTask ID: ses_abc\nSession ID: ses_abc"
       
       const result = detectDelegateTaskError(output)
       

@@ -3,7 +3,7 @@ import { afterEach } from "bun:test"
 import { tmpdir } from "node:os"
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { BackgroundTask, ResumeInput } from "./types"
-import { BackgroundManager } from "./manager"
+import { BackgroundManager, toEpochMs } from "./manager"
 import { ConcurrencyManager } from "./concurrency"
 
 
@@ -980,7 +980,6 @@ describe("BackgroundManager.trackTask", () => {
   test("should not double acquire on duplicate registration", async () => {
     // #given
     const input = {
-      taskId: "task-1",
       sessionID: "session-1",
       parentSessionID: "parent-session",
       description: "external task",
@@ -1015,7 +1014,6 @@ describe("BackgroundManager.resume concurrency key", () => {
   test("should re-acquire using external task concurrency key", async () => {
     // #given
     const task = await manager.trackTask({
-      taskId: "task-1",
       sessionID: "session-1",
       parentSessionID: "parent-session",
       description: "external task",
@@ -1194,13 +1192,12 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
       const task = await manager.launch(input)
 
       // #then
-      expect(task.status).toBe("pending")
-      expect(task.id).toMatch(/^bg_/)
+      expect(["pending", "running"]).toContain(task.status)
+      expect(task.sessionID).toBe(task.id)
       expect(task.description).toBe("Test task")
       expect(task.agent).toBe("test-agent")
       expect(task.queuedAt).toBeInstanceOf(Date)
-      expect(task.startedAt).toBeUndefined()
-      expect(task.sessionID).toBeUndefined()
+      expect(task.sessionID).toBeDefined()
     })
 
     test("should return immediately even with concurrency limit", async () => {
@@ -1225,8 +1222,8 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
 
       // #then
       expect(endTime - startTime).toBeLessThan(100) // Should be instant
-      expect(task1.status).toBe("pending")
-      expect(task2.status).toBe("pending")
+      expect(["pending", "running"]).toContain(task1.status)
+      expect(["pending", "running"]).toContain(task2.status)
     })
 
     test("should queue multiple tasks without blocking", async () => {
@@ -1255,7 +1252,7 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
       // #then
       expect(tasks).toHaveLength(5)
       tasks.forEach(task => {
-        expect(task.status).toBe("pending")
+        expect(["pending", "running"]).toContain(task.status)
         expect(task.queuedAt).toBeInstanceOf(Date)
       })
     })
@@ -1658,8 +1655,8 @@ describe("BackgroundManager - Non-blocking Queue Integration", () => {
       expect(endTime - startTime).toBeLessThan(200) // Should be very fast
       expect(tasks).toHaveLength(10)
       tasks.forEach(task => {
-        expect(task.status).toBe("pending")
-        expect(task.id).toMatch(/^bg_/)
+        expect(["pending", "running"]).toContain(task.status)
+        expect(task.sessionID).toBe(task.id)
       })
 
       // Wait for processing
@@ -1911,10 +1908,10 @@ describe("BackgroundManager.checkAndInterruptStaleTasks", () => {
       prompt: "Test",
       agent: "test-agent",
       status: "running",
-      startedAt: new Date(Date.now() - 300_000),
+      startedAt: new Date(Date.now() - 90 * 60_000),
       progress: {
         toolCalls: 1,
-        lastUpdate: new Date(Date.now() - 200_000),
+        lastUpdate: new Date(Date.now() - 25 * 60_000),
       },
     }
 
@@ -1923,6 +1920,570 @@ describe("BackgroundManager.checkAndInterruptStaleTasks", () => {
     await manager["checkAndInterruptStaleTasks"]()
 
     expect(task.status).toBe("cancelled")
+  })
+
+  test("should leave a task alone when idle for less than the default timeout", async () => {
+    const client = {
+      session: {
+        prompt: async () => ({}),
+        abort: async () => ({}),
+      },
+    }
+    const manager = new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+
+    const task: BackgroundTask = {
+      id: "task-9",
+      sessionID: "session-9",
+      parentSessionID: "parent-9",
+      parentMessageID: "msg-9",
+      description: "Slow but alive",
+      prompt: "Test",
+      agent: "test-agent",
+      status: "running",
+      startedAt: new Date(Date.now() - 60 * 60_000),
+      progress: {
+        toolCalls: 1,
+        lastUpdate: new Date(Date.now() - 15 * 60_000),
+      },
+    }
+
+    manager["tasks"].set(task.id, task)
+
+    await manager["checkAndInterruptStaleTasks"]()
+
+    expect(task.status).toBe("running")
+  })
+})
+
+describe("BackgroundManager - session rehydration after process restart", () => {
+  interface MockChild {
+    id: string
+    title?: string
+    parentID?: string
+  }
+
+  interface MockMessage {
+    info: {
+      role: string
+      agent?: string
+      model?: { providerID: string; modelID: string }
+      error?: unknown
+      time?: unknown
+    }
+    parts?: Array<{ type: string; text?: string }>
+  }
+
+  interface MockTodo {
+    status: string
+  }
+
+  interface RehydrateFixture {
+    childrenByParent: Record<string, MockChild[]>
+    messagesBySession: Record<string, MockMessage[]>
+    todosBySession: Record<string, MockTodo[]>
+    statusMap: Record<string, { type: string }>
+    messagesErrorSessions: Set<string>
+    promptCalls: Array<{ path: { id: string } }>
+    abortCalls: string[]
+  }
+
+  function createFixture(): RehydrateFixture {
+    return {
+      childrenByParent: {},
+      messagesBySession: {},
+      todosBySession: {},
+      statusMap: {},
+      messagesErrorSessions: new Set<string>(),
+      promptCalls: [],
+      abortCalls: [],
+    }
+  }
+
+  function createManager(fixture: RehydrateFixture): BackgroundManager {
+    const client = {
+      session: {
+        prompt: async (args: { path: { id: string } }) => {
+          fixture.promptCalls.push(args)
+          return {}
+        },
+        abort: async (args: { path: { id: string } }) => {
+          fixture.abortCalls.push(args.path.id)
+          return {}
+        },
+        children: async (args: { path: { id: string } }) => ({
+          data: fixture.childrenByParent[args.path.id] ?? [],
+        }),
+        messages: async (args: { path: { id: string } }) => {
+          if (fixture.messagesErrorSessions.has(args.path.id)) {
+            return { error: { message: "boom" } }
+          }
+          return { data: fixture.messagesBySession[args.path.id] ?? [] }
+        },
+        todo: async (args: { path: { id: string } }) => ({
+          data: fixture.todosBySession[args.path.id] ?? [],
+        }),
+        status: async () => ({ data: fixture.statusMap }),
+        get: async () => ({ data: { directory: "/test/dir" } }),
+      },
+    }
+    return new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+  }
+
+  function assistantMessage(text: string): MockMessage {
+    return { info: { role: "assistant" }, parts: [{ type: "text", text }] }
+  }
+
+  function userMessage(agent: string): MockMessage {
+    return {
+      info: { role: "user", agent, model: { providerID: "anthropic", modelID: "sonnet" } },
+    }
+  }
+
+  let manager: BackgroundManager
+  let fixture: RehydrateFixture
+
+  beforeEach(() => {
+    // #given
+    fixture = createFixture()
+    manager = createManager(fixture)
+  })
+
+  afterEach(() => {
+    manager.shutdown()
+  })
+
+  describe("resolveTask", () => {
+    test("should resolve a task by its session id and miss otherwise", () => {
+      // #given
+      const task: BackgroundTask = {
+        id: "ses_known",
+        sessionID: "ses_known",
+        parentSessionID: "parent",
+        parentMessageID: "msg",
+        description: "Known task",
+        prompt: "Test",
+        agent: "test-agent",
+        status: "running",
+      }
+      manager["tasks"].set(task.id, task)
+
+      // #when / #then
+      expect(manager.resolveTask("ses_known")).toBe(task)
+      expect(manager.resolveTask("ses_unknown")).toBeUndefined()
+    })
+
+    test("should fall back to a session scan when the map key diverges", () => {
+      // #given
+      const task: BackgroundTask = {
+        id: "legacy-key",
+        sessionID: "ses_scanned",
+        parentSessionID: "parent",
+        parentMessageID: "msg",
+        description: "Divergent task",
+        prompt: "Test",
+        agent: "test-agent",
+        status: "running",
+      }
+      manager["tasks"].set(task.id, task)
+
+      // #when / #then
+      expect(manager.resolveTask("ses_scanned")).toBe(task)
+    })
+  })
+
+  describe("rehydrateFromSessions", () => {
+    test("should rebuild a still-running background session", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_busy", title: "Background: Long job" }]
+      fixture.statusMap["ses_busy"] = { type: "busy" }
+      fixture.messagesBySession["ses_busy"] = [userMessage("explorer"), assistantMessage("working")]
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(recovered).toHaveLength(1)
+      const task = recovered[0]
+      expect(task.status).toBe("running")
+      expect(task.sessionID).toBe("ses_busy")
+      expect(task.description).toBe("Long job")
+      expect(task.agent).toBe("explorer")
+      expect(task.rehydrated).toBe(true)
+      expect(task.rehydratedAt).toBeInstanceOf(Date)
+      expect(task.concurrencyKey).toBeUndefined()
+      expect(task.id).toBe("ses_busy")
+      expect(manager.resolveTask("ses_busy")).toBe(task)
+    })
+
+    test("should rebuild a finished session as completed without notifying the parent", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_done", title: "Background: Finished job" }]
+      fixture.statusMap["ses_done"] = { type: "idle" }
+      fixture.messagesBySession["ses_done"] = [userMessage("builder"), assistantMessage("all done")]
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(recovered).toHaveLength(1)
+      expect(recovered[0].status).toBe("completed")
+      expect(recovered[0].completedAt).toBeInstanceOf(Date)
+      expect(fixture.promptCalls).toHaveLength(0)
+    })
+
+    test("should classify a session with no assistant output as cancelled", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_empty", title: "Background: Never ran" }]
+      fixture.messagesBySession["ses_empty"] = [userMessage("builder")]
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(recovered[0].status).toBe("cancelled")
+    })
+
+    test("should classify a session with incomplete todos as cancelled", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_partial", title: "Background: Interrupted" }]
+      fixture.messagesBySession["ses_partial"] = [userMessage("builder"), assistantMessage("partial")]
+      fixture.todosBySession["ses_partial"] = [{ status: "in_progress" }]
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(recovered[0].status).toBe("cancelled")
+    })
+
+    test("should classify a session whose last assistant message errored as error", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_failed", title: "Background: Failed job" }]
+      fixture.messagesBySession["ses_failed"] = [
+        userMessage("builder"),
+        { info: { role: "assistant", error: { message: "model exploded" } }, parts: [] },
+      ]
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(recovered[0].status).toBe("error")
+      expect(recovered[0].error).toBeDefined()
+    })
+
+    test("should classify unreadable sessions as error rather than completed", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_broken", title: "Background: Unreadable" }]
+      fixture.messagesErrorSessions.add("ses_broken")
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(recovered[0].status).toBe("error")
+    })
+
+    test("should be idempotent and skip sessions already tracked", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_dup", title: "Background: Dup job" }]
+      fixture.messagesBySession["ses_dup"] = [userMessage("builder"), assistantMessage("done")]
+
+      // #when
+      const first = await manager.rehydrateFromSessions("parent")
+      const second = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      expect(first).toHaveLength(1)
+      expect(second).toHaveLength(0)
+      expect(manager["tasks"].size).toBe(1)
+    })
+
+    test("should ignore non-background titles and discover grandchildren", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [
+        { id: "ses_sync", title: "Task: sync delegation" },
+        { id: "ses_child", title: "Background: Parent job" },
+      ]
+      fixture.childrenByParent["ses_child"] = [{ id: "ses_grand", title: "Background: Nested job" }]
+      fixture.messagesBySession["ses_child"] = [userMessage("builder"), assistantMessage("done")]
+      fixture.messagesBySession["ses_grand"] = [userMessage("builder"), assistantMessage("done")]
+
+      // #when
+      const recovered = await manager.rehydrateFromSessions("parent")
+
+      // #then
+      const sessionIDs = recovered.map(t => t.sessionID).sort()
+      expect(sessionIDs).toEqual(["ses_child", "ses_grand"])
+      expect(recovered.find(t => t.sessionID === "ses_child")?.parentSessionID).toBe("parent")
+      expect(recovered.find(t => t.sessionID === "ses_grand")?.parentSessionID).toBe("ses_child")
+      expect(manager.getAllDescendantTasks("parent")).toHaveLength(2)
+    })
+
+    test("should survive stale-task pruning despite an old startedAt", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_old", title: "Background: Ancient job" }]
+      fixture.messagesBySession["ses_old"] = [userMessage("builder"), assistantMessage("done")]
+      const recovered = await manager.rehydrateFromSessions("parent")
+      recovered[0].startedAt = new Date(Date.now() - 2 * 60 * 60 * 1000)
+
+      // #when
+      manager["pruneStaleTasksAndNotifications"]()
+
+      // #then
+      expect(manager.resolveTask("ses_old")).toBeDefined()
+      expect(manager.resolveTask("ses_old")?.status).toBe("completed")
+    })
+
+    test("should not immediately interrupt a rehydrated running task with an old startedAt", async () => {
+      // #given
+      fixture.childrenByParent["parent"] = [{ id: "ses_longrun", title: "Background: Long runner" }]
+      fixture.statusMap["ses_longrun"] = { type: "busy" }
+      fixture.messagesBySession["ses_longrun"] = [userMessage("builder"), assistantMessage("working")]
+      const recovered = await manager.rehydrateFromSessions("parent")
+      recovered[0].startedAt = new Date(Date.now() - 2 * 60 * 60 * 1000)
+      recovered[0].progress = { toolCalls: 0, lastUpdate: new Date(Date.now() - 2 * 60 * 60 * 1000) }
+
+      // #when
+      await manager["checkAndInterruptStaleTasks"]()
+
+      // #then
+      expect(recovered[0].status).toBe("running")
+      expect(fixture.abortCalls).toHaveLength(0)
+    })
+  })
+})
+
+
+describe("BackgroundManager - completed task retention", () => {
+  function createManager(): BackgroundManager {
+    const client = {
+      session: {
+        prompt: async () => ({}),
+        messages: async () => ({ data: [] }),
+        abort: async () => ({}),
+      },
+    }
+    return new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+  }
+
+  function completedTask(id: string, ageMs: number): BackgroundTask {
+    return {
+      id,
+      sessionID: `ses_${id}`,
+      parentSessionID: "parent",
+      parentMessageID: "msg",
+      description: "Finished work",
+      prompt: "Test",
+      agent: "test-agent",
+      status: "completed",
+      startedAt: new Date(Date.now() - ageMs),
+      completedAt: new Date(Date.now() - ageMs + 1000),
+      result: "the answer",
+    }
+  }
+
+  test("should not schedule an eviction of a completed task after notifying the parent", async () => {
+    // #given
+    const manager = createManager()
+    const task = completedTask("task-retained", 10_000)
+    manager["tasks"].set(task.id, task)
+    const scheduled: number[] = []
+    const realSetTimeout = globalThis.setTimeout
+    globalThis.setTimeout = ((fn: () => void, ms?: number) => {
+      scheduled.push(ms ?? 0)
+      return realSetTimeout(fn, 10_000_000)
+    }) as typeof globalThis.setTimeout
+
+    // #when
+    try {
+      await manager["notifyParentSession"](task)
+    } finally {
+      globalThis.setTimeout = realSetTimeout
+    }
+
+    // #then
+    expect(scheduled).not.toContain(5 * 60 * 1000)
+    expect(manager.getTask(task.id)).toBeDefined()
+    manager.shutdown()
+  })
+
+  test("should drop a completed task at the TTL without rewriting it as an error", () => {
+    // #given
+    const manager = createManager()
+    const task = completedTask("task-expired", TASK_TTL_MS + 60_000)
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    manager["pruneStaleTasksAndNotifications"]()
+
+    // #then
+    expect(manager.getTask(task.id)).toBeUndefined()
+    expect(task.status).toBe("completed")
+    expect(task.error).toBeUndefined()
+    manager.shutdown()
+  })
+
+  test("should keep a long-running task rather than dropping its handle at the TTL", () => {
+    // #given
+    const manager = createManager()
+    const task: BackgroundTask = {
+      ...completedTask("task-longrun", TASK_TTL_MS + 60_000),
+      status: "running",
+      completedAt: undefined,
+      result: undefined,
+      progress: { toolCalls: 12, lastUpdate: new Date() },
+    }
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    manager["pruneStaleTasksAndNotifications"]()
+
+    // #then
+    expect(manager.getTask(task.id)).toBeDefined()
+    expect(task.status).toBe("running")
+    expect(task.error).toBeUndefined()
+    manager.shutdown()
+  })
+
+  test("should not time out a task merely for sitting queued", () => {
+    // #given
+    const manager = createManager()
+    const task: BackgroundTask = {
+      ...completedTask("task-queued", 0),
+      status: "pending",
+      startedAt: undefined,
+      completedAt: undefined,
+      result: undefined,
+      queuedAt: new Date(Date.now() - (TASK_TTL_MS + 60_000)),
+    }
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    manager["pruneStaleTasksAndNotifications"]()
+
+    // #then
+    expect(manager.getTask(task.id)).toBeDefined()
+    expect(task.status).toBe("pending")
+    expect(task.error).toBeUndefined()
+    manager.shutdown()
+  })
+})
+
+describe("BackgroundManager - session id is the task handle", () => {
+  const LAUNCH_INPUT = {
+    description: "Handle task",
+    prompt: "Do something",
+    agent: "test-agent",
+    parentSessionID: "ses_parent",
+    parentMessageID: "msg_parent",
+  }
+
+  function createManager(overrides: {
+    createFails?: boolean
+    onPrompt?: () => void
+  } = {}): BackgroundManager {
+    const client = {
+      session: {
+        get: async () => ({ data: { directory: "/test/dir" } }),
+        create: async () =>
+          overrides.createFails
+            ? { error: { message: "quota exceeded" } }
+            : { data: { id: `ses_${crypto.randomUUID()}` } },
+        prompt: async () => {
+          overrides.onPrompt?.()
+          return {}
+        },
+        messages: async () => ({ data: [] }),
+        todo: async () => ({ data: [] }),
+        status: async () => ({ data: {} }),
+        abort: async () => ({}),
+      },
+    }
+    return new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+  }
+
+  test("should register a launched task under its session id", async () => {
+    // #given
+    const manager = createManager()
+
+    // #when
+    const task = await manager.launch(LAUNCH_INPUT)
+
+    // #then
+    expect(task.sessionID).toBeDefined()
+    expect(task.sessionID).toBe(task.id)
+    expect(manager.getTask(task.sessionID as string)).toBe(task)
+    manager.shutdown()
+  })
+
+  test("should register nothing when the session cannot be created", async () => {
+    // #given
+    const manager = createManager({ createFails: true })
+
+    // #when
+    const launch = manager.launch(LAUNCH_INPUT)
+
+    // #then
+    await expect(launch).rejects.toThrow()
+    expect(manager["tasks"].size).toBe(0)
+    expect(manager["pendingByParent"].size).toBe(0)
+    expect(manager["queuesByKey"].size).toBe(0)
+    manager.shutdown()
+  })
+
+  test("should refuse to resume a task that is still queued", async () => {
+    // #given
+    const manager = createManager()
+    const task = await manager.launch(LAUNCH_INPUT)
+    task.status = "pending"
+
+    // #when
+    const resumed = manager.resume({
+      sessionId: task.sessionID as string,
+      prompt: "continue",
+      parentSessionID: "ses_parent",
+      parentMessageID: "msg_parent",
+    })
+
+    // #then
+    await expect(resumed).rejects.toThrow(/queued/)
+    manager.shutdown()
+  })
+
+  test("should drop the queue entry when a queued task's session is deleted", async () => {
+    // #given
+    const manager = createManager()
+    const task = await manager.launch(LAUNCH_INPUT)
+    task.status = "pending"
+
+    // #when
+    manager.handleEvent({
+      type: "session.deleted",
+      properties: { info: { id: task.sessionID } },
+    })
+
+    // #then
+    const queued = Array.from(manager["queuesByKey"].values()).flat()
+    expect(queued.some(item => item.task.id === task.id)).toBe(false)
+    manager.shutdown()
+  })
+})
+
+describe("toEpochMs", () => {
+  test("should normalize every message time shape and reject garbage", () => {
+    // #given
+    const iso = "2026-08-12T10:00:00.000Z"
+
+    // #when / #then
+    expect(toEpochMs(1_700_000_000_000)).toBe(1_700_000_000_000)
+    expect(toEpochMs(iso)).toBe(Date.parse(iso))
+    expect(toEpochMs({ created: 100, completed: 200 })).toBe(200)
+    expect(toEpochMs({ created: 100 })).toBe(100)
+    expect(toEpochMs("not a date")).toBeUndefined()
+    expect(toEpochMs(Number.NaN)).toBeUndefined()
+    expect(toEpochMs(undefined)).toBeUndefined()
+    expect(toEpochMs({})).toBeUndefined()
   })
 })
 

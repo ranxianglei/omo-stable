@@ -175,6 +175,12 @@ ${truncated}
 
   const durationLabel = task.status === "pending" ? "Queued for" : "Duration"
 
+  const recoveryNote = task.rehydrated
+    ? `
+
+> **Recovered after restart**: rebuilt from the session; the original prompt is unavailable.`
+    : ""
+
   return `# Task Status
 
 | Field | Value |
@@ -185,12 +191,49 @@ ${truncated}
 | Status | **${task.status}** |
 | ${durationLabel} | ${duration} |
 | Session ID | \`${task.sessionID}\` |${progressSection}
-${statusNote}
+${statusNote}${recoveryNote}
 ## Original Prompt
 
 \`\`\`
 ${promptPreview}
 \`\`\`${lastMessageSection}`
+}
+
+async function resolveTaskWithRecovery(
+  manager: BackgroundManager,
+  idOrSessionID: string,
+  parentSessionID: string
+): Promise<BackgroundTask | undefined> {
+  const existing = manager.resolveTask(idOrSessionID)
+  if (existing) return existing
+
+  await manager.rehydrateFromSessions(parentSessionID)
+  return manager.resolveTask(idOrSessionID)
+}
+
+function formatRecoveryListing(
+  manager: BackgroundManager,
+  requestedID: string,
+  parentSessionID: string
+): string {
+  const tasks = manager.getAllDescendantTasks(parentSessionID)
+  if (tasks.length === 0) {
+    return `Task not found: ${requestedID}`
+  }
+
+  const rows = tasks
+    .map(t => `| \`${t.sessionID ?? "(not started)"}\` | ${t.description} | ${t.status} |`)
+    .join("\n")
+
+  return `Task not found: ${requestedID}
+
+Task ids from a previous process cannot be recovered, but these background sessions were found:
+
+| Session ID | Description | Status |
+|------------|-------------|--------|
+${rows}
+
+Retry with \`background_output(task_id="<session id>")\`.`
 }
 
 async function formatTaskResult(task: BackgroundTask, client: OpencodeClient): Promise<string> {
@@ -325,11 +368,11 @@ export function createBackgroundOutput(manager: BackgroundManager, client: Openc
       block: tool.schema.boolean().optional().describe("Wait for completion (default: false). System notifies when done, so blocking is rarely needed."),
       timeout: tool.schema.number().optional().describe("Max wait time in ms (default: 60000, max: 600000)"),
     },
-    async execute(args: BackgroundOutputArgs) {
+    async execute(args: BackgroundOutputArgs, toolContext: { sessionID: string }) {
       try {
-        const task = manager.getTask(args.task_id)
+        const task = await resolveTaskWithRecovery(manager, args.task_id, toolContext.sessionID)
         if (!task) {
-          return `Task not found: ${args.task_id}`
+          return formatRecoveryListing(manager, args.task_id, toolContext.sessionID)
         }
 
         const shouldBlock = args.block === true
@@ -356,7 +399,7 @@ export function createBackgroundOutput(manager: BackgroundManager, client: Openc
         while (Date.now() - startTime < timeoutMs) {
           await delay(1000)
 
-          const currentTask = manager.getTask(args.task_id)
+          const currentTask = manager.resolveTask(args.task_id)
           if (!currentTask) {
             return `Task was deleted: ${args.task_id}`
           }
@@ -371,7 +414,7 @@ export function createBackgroundOutput(manager: BackgroundManager, client: Openc
         }
 
         // Timeout exceeded: return current status
-        const finalTask = manager.getTask(args.task_id)
+        const finalTask = manager.resolveTask(args.task_id)
         if (!finalTask) {
           return `Task was deleted: ${args.task_id}`
         }
@@ -399,6 +442,7 @@ export function createBackgroundCancel(manager: BackgroundManager, client: Openc
         }
 
         if (cancelAll) {
+          await manager.rehydrateFromSessions(toolContext.sessionID)
           const tasks = manager.getAllDescendantTasks(toolContext.sessionID)
           const cancellableTasks = tasks.filter(t => t.status === "running" || t.status === "pending")
 
@@ -463,7 +507,7 @@ ${tableRows}
 ${resumeSection}`
         }
 
-        const task = manager.getTask(args.taskId!)
+        const task = await resolveTaskWithRecovery(manager, args.taskId!, toolContext.sessionID)
         if (!task) {
           return `[ERROR] Task not found: ${args.taskId}`
         }
