@@ -1,6 +1,6 @@
 {
-  "name": "@ali/omo-stable",
-  "version": "3.6.0",
+  "name": "omo-stable",
+  "version": "3.5.0",
   "description": "The Best AI Agent Harness - Batteries-Included OpenCode Plugin with Multi-Model Orchestration, Parallel Background Agents, and Crafted LSP/AST Tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,9 +19,6 @@
       "import": "./dist/index.js"
     },
     "./schema.json": "./dist/omo-stable.schema.json"
-  },
-  "publishConfig": {
-    "registry": "https://registry.anpm.alibaba-inc.com"
   },
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target bun --format esm --external @ast-grep/napi && tsc --emitDeclarationOnly && bun build src/cli/index.ts --outdir dist/cli --target bun --format esm --external @ast-grep/napi && bun run build:schema",
