@@ -196,7 +196,7 @@ You can fine-tune categories in `omo-stable.json`.
         "budgetTokens": 32000
       },
       "tools": {
-        "websearch_web_search_exa": false // Disable web search
+        "webfetch": false // Disable web fetch
       }
     }
   },

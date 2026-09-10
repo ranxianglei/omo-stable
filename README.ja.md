@@ -195,7 +195,6 @@ Windows から Linux に初めて乗り換えた時のこと、自分の思い�
 - Comment Checker: AIが過剰なコメントを付けないようにします。シジフォスが生成したコードは、人間が書いたものと区別がつかないべきです。
 - Claude Code Compatibility: Command, Agent, Skill, MCP, Hook(PreToolUse, PostToolUse, UserPromptSubmit, Stop)
 - Curated MCPs:
-  - Exa (Web Search)
   - Context7 (Official Documentation)
   - Grep.app (GitHub Code Search)
 - Interactive Terminal Supported - Tmux Integration
@@ -286,7 +285,7 @@ omo-stable を削除するには：
 - **LSP & AST ツール**: リファクタリング、リネーム、診断、AST 認識コード検索
 - **コンテキスト注入**: AGENTS.md、README.md、条件付きルールの自動注入
 - **Claude Code 互換性**: 完全なフックシステム、コマンド、スキル、エージェント、MCP
-- **内蔵 MCP**: websearch (Exa)、context7 (ドキュメント)、grep_app (GitHub 検索)
+- **内蔵 MCP**: context7 (ドキュメント)、grep_app (GitHub 検索)
 - **セッションツール**: セッション履歴の一覧、読み取り、検索、分析
 - **生産性機能**: Ralph Loop、Todo Enforcer、Comment Checker、Think Mode など
 
@@ -304,7 +303,7 @@ omo-stable を削除するには：
 - **バックグラウンドタスク**: プロバイダー/モデルごとの同時実行制限を設定
 - **カテゴリ**: ドメイン固有のタスク委任 (`visual`, `business-logic`, カスタム)
 - **フック**: 25以上の内蔵フック、すべて `disabled_hooks` で設定可能
-- **MCP**: 内蔵 websearch (Exa), context7 (ドキュメント), grep_app (GitHub 検索)
+- **MCP**: 内蔵 context7 (ドキュメント), grep_app (GitHub 検索)
 - **LSP**: リファクタリングツール付きの完全な LSP サポート
 - **実験的機能**: 積極的な切り詰め、自動再開など
 

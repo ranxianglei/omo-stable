@@ -422,10 +422,6 @@ Disable specific hooks in config:
 
 ## MCPs: Built-in Servers
 
-### websearch (Exa AI)
-
-Real-time web search powered by [Exa AI](https://exa.ai).
-
 ### context7
 
 Official documentation lookup for any library/framework.

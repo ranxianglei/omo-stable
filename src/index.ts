@@ -404,57 +404,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
           ...(isExplore ? { call_omo_agent: false } : {}),
         };
       }
-
-      if (ralphLoop && input.tool === "slashcommand") {
-        const args = output.args as { command?: string } | undefined;
-        const command = args?.command?.replace(/^\//, "").toLowerCase();
-        const sessionID = input.sessionID || getMainSessionID();
-
-        if (command === "ralph-loop" && sessionID) {
-          const rawArgs =
-            args?.command?.replace(/^\/?(ralph-loop)\s*/i, "") || "";
-          const taskMatch = rawArgs.match(/^["'](.+?)["']/);
-          const prompt =
-            taskMatch?.[1] ||
-            rawArgs.split(/\s+--/)[0]?.trim() ||
-            "Complete the task as instructed";
-
-          const maxIterMatch = rawArgs.match(/--max-iterations=(\d+)/i);
-          const promiseMatch = rawArgs.match(
-            /--completion-promise=["']?([^"'\s]+)["']?/i
-          );
-
-          ralphLoop.startLoop(sessionID, prompt, {
-            maxIterations: maxIterMatch
-              ? parseInt(maxIterMatch[1], 10)
-              : undefined,
-            completionPromise: promiseMatch?.[1],
-          });
-         } else if (command === "cancel-ralph" && sessionID) {
-           ralphLoop.cancelLoop(sessionID);
-         } else if (command === "ulw-loop" && sessionID) {
-           const rawArgs =
-             args?.command?.replace(/^\/?(ulw-loop)\s*/i, "") || "";
-           const taskMatch = rawArgs.match(/^["'](.+?)["']/);
-           const prompt =
-             taskMatch?.[1] ||
-             rawArgs.split(/\s+--/)[0]?.trim() ||
-             "Complete the task as instructed";
-
-           const maxIterMatch = rawArgs.match(/--max-iterations=(\d+)/i);
-           const promiseMatch = rawArgs.match(
-             /--completion-promise=["']?([^"'\s]+)["']?/i
-           );
-
-           ralphLoop.startLoop(sessionID, prompt, {
-             ultrawork: true,
-             maxIterations: maxIterMatch
-               ? parseInt(maxIterMatch[1], 10)
-               : undefined,
-             completionPromise: promiseMatch?.[1],
-           });
-         }
-      }
     },
 
     "tool.execute.after": async (input, output) => {
