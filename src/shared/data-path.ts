@@ -15,8 +15,14 @@ export function getDataDir(): string {
 
 /**
  * Returns the OpenCode storage directory path.
- * All platforms: ~/.local/share/opencode/storage
+ * Resolution order:
+ * 1. OPENCODE_STORAGE_DIR env var (trimmed; empty/whitespace ignored; relative paths resolved)
+ * 2. <getDataDir()>/opencode/storage (default: ~/.local/share/opencode/storage)
  */
 export function getOpenCodeStorageDir(): string {
+  const envStorageDir = process.env.OPENCODE_STORAGE_DIR?.trim()
+  if (envStorageDir) {
+    return path.resolve(envStorageDir)
+  }
   return path.join(getDataDir(), "opencode", "storage")
 }
