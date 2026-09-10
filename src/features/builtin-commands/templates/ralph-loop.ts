@@ -1,3 +1,7 @@
+export const RALPH_LOOP_START_MARKER = "You are starting a Ralph Loop";
+export const ULW_LOOP_START_MARKER = "You are starting an Ultrawork Loop";
+export const CANCEL_RALPH_MARKER = "Cancel the currently active Ralph Loop";
+
 export const RALPH_LOOP_TEMPLATE = `You are starting a Ralph Loop - a self-referential development loop that runs until task completion.
 
 ## How Ralph Loop Works
@@ -27,6 +31,13 @@ Parse the arguments below and begin working on the task. The format is:
 \`"task description" [--completion-promise=TEXT] [--max-iterations=N]\`
 
 Default completion promise is "DONE" and default max iterations is 100.`
+
+// Derived from RALPH_LOOP_TEMPLATE so both loops share identical instructions; only the
+// start marker differs, which is what lets Path A route /ulw-loop into ultrawork mode (#17).
+export const ULW_LOOP_TEMPLATE = RALPH_LOOP_TEMPLATE.replace(
+  RALPH_LOOP_START_MARKER,
+  ULW_LOOP_START_MARKER
+);
 
 export const CANCEL_RALPH_TEMPLATE = `Cancel the currently active Ralph Loop.
 
