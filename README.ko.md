@@ -203,7 +203,6 @@ Hey please read this readme and tell me why it is different from other agent har
 - 주석 검사기: AI가 과도한 주석을 추가하는 것을 방지합니다. Sisyphus가 생성한 코드는 인간이 작성한 것과 구별할 수 없어야 합니다.
 - Claude Code 호환성: 명령, 에이전트, 스킬, MCP, 훅(PreToolUse, PostToolUse, UserPromptSubmit, Stop)
 - 큐레이팅된 MCP:
-  - Exa (웹 검색)
   - Context7 (공식 문서)
   - Grep.app (GitHub 코드 검색)
 - 대화형 터미널 지원 - Tmux 통합
@@ -299,7 +298,7 @@ omo-stable를 제거하려면:
 - **LSP 및 AST 도구**: 리팩토링, 이름 변경, 진단, AST 인식 코드 검색
 - **컨텍스트 주입**: AGENTS.md, README.md, 조건부 규칙 자동 주입
 - **Claude Code 호환성**: 완전한 훅 시스템, 명령, 스킬, 에이전트, MCP
-- **내장 MCP**: websearch(Exa), context7(문서), grep_app(GitHub 검색)
+- **내장 MCP**: context7(문서), grep_app(GitHub 검색)
 - **세션 도구**: 세션 기록 나열, 읽기, 검색 및 분석
 - **생산성 기능**: Ralph 루프, Todo 강제, 주석 검사기, 생각 모드 등
 
@@ -317,7 +316,7 @@ omo-stable를 제거하려면:
 - **백그라운드 작업**: 공급자/모델별 동시성 제한 구성
 - **카테고리**: 도메인별 작업 위임(`visual`, `business-logic`, 사용자 정의)
 - **훅**: 25개 이상의 내장 훅, `disabled_hooks`를 통해 모두 구성 가능
-- **MCP**: 내장 websearch(Exa), context7(문서), grep_app(GitHub 검색)
+- **MCP**: 내장 context7(문서), grep_app(GitHub 검색)
 - **LSP**: 리팩토링 도구가 있는 완전한 LSP 지원
 - **실험적 기능**: 공격적 자르기, 자동 재개 등
 

@@ -199,7 +199,6 @@
 - 注释检查器：防止 AI 添加过多注释。Sisyphus 生成的代码应该与人类编写的代码无法区分。
 - Claude Code 兼容性：Command、Agent、Skill、MCP、Hook（PreToolUse、PostToolUse、UserPromptSubmit、Stop）
 - 精选 MCP：
-  - Exa（网络搜索）
   - Context7（官方文档）
   - Grep.app（GitHub 代码搜索）
 - 支持交互式终端 - Tmux 集成
@@ -296,7 +295,7 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 - **LSP & AST 工具**：重构、重命名、诊断、AST 感知代码搜索
 - **上下文注入**：自动注入 AGENTS.md、README.md、条件规则
 - **Claude Code 兼容性**：完整的钩子系统、命令、技能、智能体、MCP
-- **内置 MCP**：websearch (Exa)、context7 (文档)、grep_app (GitHub 搜索)
+- **内置 MCP**：context7 (文档)、grep_app (GitHub 搜索)
 - **会话工具**：列出、读取、搜索和分析会话历史
 - **生产力功能**：Ralph Loop、Todo Enforcer、Comment Checker、Think Mode 等
 
@@ -314,7 +313,7 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads
 - **后台任务**: 按提供商/模型配置并发限制
 - **类别**: 领域特定的任务委派 (`visual`, `business-logic`, 自定义)
 - **钩子**: 25+ 内置钩子，均可通过 `disabled_hooks` 配置
-- **MCP**: 内置 websearch (Exa), context7 (文档), grep_app (GitHub 搜索)
+- **MCP**: 内置 context7 (文档), grep_app (GitHub 搜索)
 - **LSP**: 带重构工具的完整 LSP 支持
 - **实验性功能**: 积极截断、自动恢复等
 

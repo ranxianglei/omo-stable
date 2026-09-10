@@ -479,9 +479,8 @@ Available hooks: `todo-continuation-enforcer`, `context-window-monitor`, `sessio
 
 ## MCPs
 
-Exa, Context7 and grep.app MCP enabled by default.
+Context7 and grep.app MCPs enabled by default.
 
-- **websearch**: Real-time web search powered by [Exa AI](https://exa.ai) - searches the web and returns relevant content
 - **context7**: Fetches up-to-date official documentation for libraries
 - **grep_app**: Ultra-fast code search across millions of public GitHub repositories via [grep.app](https://grep.app)
 
@@ -489,7 +488,7 @@ Don't want them? Disable via `disabled_mcps` in `~/.config/opencode/omo-stable.j
 
 ```json
 {
-  "disabled_mcps": ["websearch", "context7", "grep_app"]
+  "disabled_mcps": ["context7", "grep_app"]
 }
 ```
 
