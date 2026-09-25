@@ -52,6 +52,7 @@ import {
 } from "./tools";
 import { BackgroundManager } from "./features/background-agent";
 import { initTaskToastManager } from "./features/task-toast-manager";
+import { detectLoopCommand } from "./features/builtin-commands/loop-detector";
 import { type HookName } from "./config";
 import { log, detectExternalNotificationPlugin, getNotificationConflictWarning, resetMessageCursor, includesCaseInsensitive } from "./shared";
 import { loadPluginConfig } from "./plugin-config";
@@ -246,41 +247,20 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
             .join("\n")
             .trim() || "";
 
-        const isRalphLoopTemplate =
-          promptText.includes("You are starting a Ralph Loop") &&
-          promptText.includes("<user-task>");
-        const isCancelRalphTemplate = promptText.includes(
-          "Cancel the currently active Ralph Loop"
-        );
+        const detectedLoop = detectLoopCommand(promptText);
 
-        if (isRalphLoopTemplate) {
-          const taskMatch = promptText.match(
-            /<user-task>\s*([\s\S]*?)\s*<\/user-task>/i
-          );
-          const rawTask = taskMatch?.[1]?.trim() || "";
-
-          const quotedMatch = rawTask.match(/^["'](.+?)["']/);
-          const prompt =
-            quotedMatch?.[1] ||
-            rawTask.split(/\s+--/)[0]?.trim() ||
-            "Complete the task as instructed";
-
-          const maxIterMatch = rawTask.match(/--max-iterations=(\d+)/i);
-          const promiseMatch = rawTask.match(
-            /--completion-promise=["']?([^"'\s]+)["']?/i
-          );
-
+        if (detectedLoop && detectedLoop.kind !== "cancel-ralph") {
           log("[ralph-loop] Starting loop from chat.message", {
             sessionID: input.sessionID,
-            prompt,
+            kind: detectedLoop.kind,
+            prompt: detectedLoop.prompt,
           });
-          ralphLoop.startLoop(input.sessionID, prompt, {
-            maxIterations: maxIterMatch
-              ? parseInt(maxIterMatch[1], 10)
-              : undefined,
-            completionPromise: promiseMatch?.[1],
+          ralphLoop.startLoop(input.sessionID, detectedLoop.prompt, {
+            maxIterations: detectedLoop.maxIterations,
+            completionPromise: detectedLoop.completionPromise,
+            ultrawork: detectedLoop.kind === "ulw-loop",
           });
-        } else if (isCancelRalphTemplate) {
+        } else if (detectedLoop?.kind === "cancel-ralph") {
           log("[ralph-loop] Cancelling loop from chat.message", {
             sessionID: input.sessionID,
           });

@@ -1,7 +1,11 @@
 import type { CommandDefinition } from "../claude-code-command-loader"
 import type { BuiltinCommandName, BuiltinCommands } from "./types"
 import { INIT_DEEP_TEMPLATE } from "./templates/init-deep"
-import { RALPH_LOOP_TEMPLATE, CANCEL_RALPH_TEMPLATE } from "./templates/ralph-loop"
+import {
+  CANCEL_RALPH_TEMPLATE,
+  RALPH_LOOP_TEMPLATE,
+  ULW_LOOP_TEMPLATE,
+} from "./templates/ralph-loop"
 import { REFACTOR_TEMPLATE } from "./templates/refactor"
 
 const BUILTIN_COMMAND_DEFINITIONS: Record<BuiltinCommandName, Omit<CommandDefinition, "name">> = {
@@ -30,7 +34,7 @@ $ARGUMENTS
    "ulw-loop": {
      description: "(builtin) Start ultrawork loop - continues until completion with ultrawork mode",
      template: `<command-instruction>
-${RALPH_LOOP_TEMPLATE}
+${ULW_LOOP_TEMPLATE}
 </command-instruction>
 
 <user-task>
