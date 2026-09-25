@@ -158,7 +158,7 @@ bun run build:schema
 - Using `@types/node` instead of `bun-types`
 - Suppressing TypeScript errors with `as any`, `@ts-ignore`, `@ts-expect-error`
 - Generic AI-generated comment bloat
-- Direct `bun publish` (use GitHub Actions only)
+- Direct publishing via `npm publish` / `bun publish` (publishing is maintainer-only — see [Publishing](#publishing))
 - Local version modifications in `package.json`
 
 ## Making Changes
@@ -247,14 +247,14 @@ export function createMyHook(input: PluginInput) {
 
 ## Publishing
 
-**Important**: Publishing is handled exclusively through GitHub Actions.
+**Important**: Publishing is done manually by maintainers. See [AGENTS.md §5 Release Workflow](AGENTS.md#5-release-workflow-the-standard-flow) for the canonical flow.
 
-- **Never** run `bun publish` directly (OIDC provenance issues)
-- **Never** modify `package.json` version locally
-- Maintainers use GitHub Actions workflow_dispatch:
-  ```bash
-  gh workflow run publish -f bump=patch  # or minor/major
-  ```
+The current flow: merge changes to `master`, then from a dedicated version-bump branch run `npm publish --access public` locally (guarded by `NPM_ALLOW_DANGEROUS`), verify with `npm view omo-stable version`, and land the version bump via a version PR.
+
+Contributors:
+
+- **Never** publish directly (`npm publish` / `bun publish`) — publishing is maintainer-only
+- **Never** modify the `package.json` `version` field in feature branches — it is release-branch-only territory
 
 ## Getting Help
 
