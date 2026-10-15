@@ -2521,11 +2521,18 @@ describe("BackgroundManager.notifyParentSession - result retrieval guidance", ()
     }
   }
 
+  // The all-complete decision reads pendingByParent (not the tasks map); one
+  // surviving entry keeps the individual-completion branch active
+  function seedPendingSibling(manager: BackgroundManager): void {
+    manager["pendingByParent"].set("parent-guidance", new Set(["task-running"]))
+  }
+
   test("should label errored tasks FAILED (not CANCELLED) and carry the workflow rules", async () => {
     // #given - an errored task must not be mislabeled CANCELLED
     const { manager, texts } = createCapturingManager()
     const task = taskWithStatus("error")
     manager["tasks"].set(task.id, task)
+    seedPendingSibling(manager)
 
     // #when
     await manager["notifyParentSession"](task)
@@ -2545,6 +2552,7 @@ describe("BackgroundManager.notifyParentSession - result retrieval guidance", ()
     const { manager, texts } = createCapturingManager()
     const task = taskWithStatus("completed")
     manager["tasks"].set(task.id, task)
+    seedPendingSibling(manager)
 
     // #when
     await manager["notifyParentSession"](task)
@@ -2554,6 +2562,26 @@ describe("BackgroundManager.notifyParentSession - result retrieval guidance", ()
     expect(text).toContain("[BACKGROUND TASK COMPLETED]")
     expect(text).toContain("returns the final message plus a path to the full transcript file")
     expect(text).toContain("use Read/Grep on that path if you need details")
+    manager.shutdown()
+  })
+
+  test("should use the all-complete summary when no other tasks are in flight", async () => {
+    // #given - a single finished task means allComplete=true, so the summary
+    // template (no per-status header) is the one that must carry the guidance
+    const { manager, texts } = createCapturingManager()
+    const task = taskWithStatus("completed")
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    await manager["notifyParentSession"](task)
+
+    // #then
+    const text = texts.join("\n")
+    expect(text).toContain("[ALL BACKGROUND TASKS COMPLETE]")
+    expect(text).toContain("**Tasks:**")
+    expect(text).toContain("returns the final message plus a path to the full transcript file")
+    expect(text).toContain("use Read/Grep on that path if you need details")
+    expect(text).toContain("automated system messages, not user requests")
     manager.shutdown()
   })
 })
