@@ -2487,3 +2487,101 @@ describe("toEpochMs", () => {
   })
 })
 
+
+describe("BackgroundManager.notifyParentSession - result retrieval guidance", () => {
+  function createCapturingManager() {
+    const texts: string[] = []
+    const client = {
+      session: {
+        prompt: async (args: { body?: { parts?: Array<{ type: string; text?: string }> } }) => {
+          texts.push(args.body?.parts?.[0]?.text ?? "")
+          return {}
+        },
+        messages: async () => ({ data: [] }),
+        abort: async () => ({}),
+      },
+    }
+    const manager = new BackgroundManager({ client, directory: tmpdir() } as unknown as PluginInput)
+    return { manager, texts }
+  }
+
+  function taskWithStatus(status: "completed" | "error"): BackgroundTask {
+    return {
+      id: "task-guidance",
+      sessionID: "ses_guidance",
+      parentSessionID: "parent-guidance",
+      parentMessageID: "msg",
+      description: "Guided task",
+      prompt: "Test",
+      agent: "explore",
+      status,
+      startedAt: new Date(),
+      completedAt: new Date(),
+      ...(status === "error" ? { error: "boom" } : {}),
+    }
+  }
+
+  // The all-complete decision reads pendingByParent (not the tasks map); one
+  // surviving entry keeps the individual-completion branch active
+  function seedPendingSibling(manager: BackgroundManager): void {
+    manager["pendingByParent"].set("parent-guidance", new Set(["task-running"]))
+  }
+
+  test("should label errored tasks FAILED (not CANCELLED) and carry the workflow rules", async () => {
+    // #given - an errored task must not be mislabeled CANCELLED
+    const { manager, texts } = createCapturingManager()
+    const task = taskWithStatus("error")
+    manager["tasks"].set(task.id, task)
+    seedPendingSibling(manager)
+
+    // #when
+    await manager["notifyParentSession"](task)
+
+    // #then
+    const text = texts.join("\n")
+    expect(text).toContain("[BACKGROUND TASK FAILED ⚠️]")
+    expect(text).not.toContain("CANCELLED]")
+    expect(text).toContain("automated system messages, not user requests")
+    expect(text).toContain("account for every dispatched task")
+    expect(text).toContain("full transcript file")
+    manager.shutdown()
+  })
+
+  test("should label completed tasks COMPLETED and point at the transcript file", async () => {
+    // #given
+    const { manager, texts } = createCapturingManager()
+    const task = taskWithStatus("completed")
+    manager["tasks"].set(task.id, task)
+    seedPendingSibling(manager)
+
+    // #when
+    await manager["notifyParentSession"](task)
+
+    // #then
+    const text = texts.join("\n")
+    expect(text).toContain("[BACKGROUND TASK COMPLETED]")
+    expect(text).toContain("returns the final message plus a path to the full transcript file")
+    expect(text).toContain("use Read/Grep on that path if you need details")
+    manager.shutdown()
+  })
+
+  test("should use the all-complete summary when no other tasks are in flight", async () => {
+    // #given - a single finished task means allComplete=true, so the summary
+    // template (no per-status header) is the one that must carry the guidance
+    const { manager, texts } = createCapturingManager()
+    const task = taskWithStatus("completed")
+    manager["tasks"].set(task.id, task)
+
+    // #when
+    await manager["notifyParentSession"](task)
+
+    // #then
+    const text = texts.join("\n")
+    expect(text).toContain("[ALL BACKGROUND TASKS COMPLETE]")
+    expect(text).toContain("**Tasks:**")
+    expect(text).toContain("returns the final message plus a path to the full transcript file")
+    expect(text).toContain("use Read/Grep on that path if you need details")
+    expect(text).toContain("automated system messages, not user requests")
+    manager.shutdown()
+  })
+})

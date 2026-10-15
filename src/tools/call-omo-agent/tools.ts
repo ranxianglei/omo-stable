@@ -6,6 +6,7 @@ import type { CallOmoAgentArgs } from "./types"
 import type { BackgroundManager } from "../../features/background-agent"
 import { log, getAgentToolRestrictions, includesCaseInsensitive } from "../../shared"
 import { consumeNewMessages } from "../../shared/session-cursor"
+import { writeTranscript, findFinalAssistantText, finalMessageBlock, transcriptPointerLine, type TranscriptTask, type TranscriptMessage } from "../background-task/transcript"
 import { findFirstMessageWithAgent, findNearestMessageWithFields, MESSAGE_STORAGE } from "../../features/hook-message-injector"
 import { getSessionAgent } from "../../features/claude-code-session-state"
 
@@ -52,6 +53,10 @@ export function createCallOmoAgent(
         .boolean()
         .describe("REQUIRED. true: run asynchronously (use background_output to get results), false: run synchronously and wait for completion"),
       session_id: tool.schema.string().describe("Existing Task session to continue").optional(),
+      full: tool.schema
+        .boolean()
+        .optional()
+        .describe("Return the complete output inline instead of just the final message (default: false). The full transcript is always saved to a file."),
     },
     async execute(args: CallOmoAgentArgs, toolContext) {
       const toolCtx = toolContext as ToolContextWithMetadata
@@ -137,6 +142,7 @@ async function executeSync(
   ctx: PluginInput
 ): Promise<string> {
   let sessionID: string
+  let sessionDirectory = ctx.directory
 
   if (args.session_id) {
     log(`[call_omo_agent] Using existing session: ${args.session_id}`)
@@ -148,6 +154,7 @@ async function executeSync(
       return `Error: Failed to get existing session: ${sessionResult.error}`
     }
     sessionID = args.session_id
+    sessionDirectory = sessionResult.data?.directory ?? ctx.directory
   } else {
     log(`[call_omo_agent] Creating new session with parent: ${toolContext.sessionID}`)
     const parentSession = await ctx.client.session.get({
@@ -175,6 +182,7 @@ async function executeSync(
     }
 
     sessionID = createResult.data.id
+    sessionDirectory = parentDirectory
     log(`[call_omo_agent] Created session: ${sessionID}`)
   }
 
@@ -298,8 +306,27 @@ async function executeSync(
 
   const newMessages = consumeNewMessages(sessionID, sortedMessages)
 
+  // The SDK Part union is a structural superset of TranscriptPart; the renderer only reads text/name/state.output
+  const transcriptMessages = sortedMessages as unknown as TranscriptMessage[]
+
+  const taskLike: TranscriptTask = {
+    id: sessionID,
+    description: args.description,
+    agent: args.subagent_type,
+    status: "completed",
+    sessionID,
+  }
+  const transcriptPath = await writeTranscript(sessionDirectory, taskLike, transcriptMessages)
+  const metadata = ["<task_metadata>", `session_id: ${sessionID}`, "</task_metadata>"].join("\n")
+
   if (newMessages.length === 0) {
-    return `No new output since last check.\n\n<task_metadata>\nsession_id: ${sessionID}\n</task_metadata>`
+    return `No new output since last check.${transcriptPointerLine(transcriptPath)}\n\n${metadata}`
+  }
+
+  if (args.full !== true) {
+    const finalText = findFinalAssistantText(transcriptMessages)
+    log(`[call_omo_agent] Got response (final message only), transcript: ${transcriptPath ?? "unavailable"}`)
+    return `${finalMessageBlock(finalText, transcriptPath, transcriptMessages.length)}\n\n${metadata}`
   }
 
   // Extract content from ALL messages, not just the last one
@@ -335,8 +362,5 @@ async function executeSync(
 
   log(`[call_omo_agent] Got response, length: ${responseText.length}`)
 
-  const output =
-    responseText + "\n\n" + ["<task_metadata>", `session_id: ${sessionID}`, "</task_metadata>"].join("\n")
-
-  return output
+  return `${responseText}${transcriptPointerLine(transcriptPath)}\n\n${metadata}`
 }

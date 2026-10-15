@@ -8,6 +8,7 @@ export interface BackgroundOutputArgs {
   task_id: string
   block?: boolean
   timeout?: number
+  full?: boolean
 }
 
 export interface BackgroundCancelArgs {

@@ -1,4 +1,4 @@
-type MessageTime =
+export type MessageTime =
   | { created?: number | string }
   | number
   | string
