@@ -8,6 +8,7 @@ export interface CallOmoAgentArgs {
   subagent_type: string
   run_in_background: boolean
   session_id?: string
+  full?: boolean
 }
 
 export interface CallOmoAgentSyncResult {

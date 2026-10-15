@@ -1187,7 +1187,7 @@ export class BackgroundManager {
 **Completed:**
 ${completedTasks || `- \`${task.id}\`: ${task.description}`}
 
-Use \`background_output(task_id="<id>")\` to retrieve each result.
+Use \`background_output(task_id="<id>")\` to retrieve each result: it returns the final message plus a path to the full transcript file.
 </system-reminder>`
     } else {
       // Individual completion - silent notification
@@ -1200,7 +1200,7 @@ Use \`background_output(task_id="<id>")\` to retrieve each result.
 **${remainingCount} task${remainingCount === 1 ? "" : "s"} still in progress.** You WILL be notified when ALL complete.
 Do NOT poll - continue productive work.
 
-Use \`background_output(task_id="${task.id}")\` to retrieve this result when ready.
+Use \`background_output(task_id="${task.id}")\` to retrieve this result when ready. It returns the final message plus a path to the full transcript file.
 </system-reminder>`
     }
 

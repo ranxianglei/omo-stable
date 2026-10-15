@@ -8,6 +8,7 @@ import { findNearestMessageWithFields, findFirstMessageWithAgent, MESSAGE_STORAG
 import { getSessionAgent } from "../../features/claude-code-session-state"
 import { log } from "../../shared/logger"
 import { consumeNewMessages } from "../../shared/session-cursor"
+import { getTranscriptPath, writeTranscript, formatDuration, extractMessageContent, findFinalAssistantText, transcriptHintLine, transcriptPointerLine, type TranscriptMessage } from "./transcript"
 
 type OpencodeClient = PluginInput["client"]
 
@@ -23,21 +24,6 @@ function getMessageDir(sessionID: string): string | null {
   }
 
   return null
-}
-
-function formatDuration(start: Date, end?: Date): string {
-  const duration = (end ?? new Date()).getTime() - start.getTime()
-  const seconds = Math.floor(duration / 1000)
-  const minutes = Math.floor(seconds / 60)
-  const hours = Math.floor(minutes / 60)
-
-  if (hours > 0) {
-    return `${hours}h ${minutes % 60}m ${seconds % 60}s`
-  } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s`
-  } else {
-    return `${seconds}s`
-  }
 }
 
 type ToolContextWithMetadata = {
@@ -236,11 +222,31 @@ ${rows}
 Retry with \`background_output(task_id="<session id>")\`.`
 }
 
-async function formatTaskResult(task: BackgroundTask, client: OpencodeClient): Promise<string> {
+interface FormatTaskResultOptions {
+  full?: boolean
+  workDir?: string
+}
+
+async function resolveWorkDir(client: OpencodeClient, sessionID: string): Promise<string> {
+  try {
+    const result = await client.session.get({ path: { id: sessionID } })
+    const dir = result?.data?.directory
+    if (dir) return dir
+  } catch (error) {
+    log("[background-task] failed to resolve parent session directory", { sessionID, error: String(error) })
+  }
+  return process.cwd()
+}
+
+async function formatTaskResult(
+  task: BackgroundTask,
+  client: OpencodeClient,
+  opts: FormatTaskResultOptions = {}
+): Promise<string> {
   if (!task.sessionID) {
     return `Error: Task has no sessionID`
   }
-  
+
   const messagesResult = await client.session.messages({
     path: { id: task.sessionID },
   })
@@ -251,18 +257,9 @@ async function formatTaskResult(task: BackgroundTask, client: OpencodeClient): P
 
   // Handle both SDK response structures: direct array or wrapped in .data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const messages = ((messagesResult as any).data ?? messagesResult) as Array<{
-    info?: { role?: string; time?: string }
-    parts?: Array<{ 
-      type?: string
-      text?: string
-      content?: string | Array<{ type: string; text?: string }>
-      name?: string
-    }>
-  }>
+  const messages = ((messagesResult as any).data ?? messagesResult) as TranscriptMessage[]
 
-  if (!Array.isArray(messages) || messages.length === 0) {
-    return `Task Result
+  const header = () => `Task Result
 
 Task ID: ${task.id}
 Description: ${task.description}
@@ -271,7 +268,10 @@ Session ID: ${task.sessionID}
 
 ---
 
-(No messages found)`
+`
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return `${header()}(No messages found)`
   }
 
   // Include both assistant messages AND tool messages
@@ -281,83 +281,37 @@ Session ID: ${task.sessionID}
   )
 
   if (relevantMessages.length === 0) {
-    return `Task Result
-
-Task ID: ${task.id}
-Description: ${task.description}
-Duration: ${formatDuration(task.startedAt ?? new Date(), task.completedAt)}
-Session ID: ${task.sessionID}
-
----
-
-(No assistant or tool response found)`
+    return `${header()}(No assistant or tool response found)`
   }
 
   // Sort by time ascending (oldest first) to process messages in order
   const sortedMessages = [...relevantMessages].sort((a, b) => {
-    const timeA = String((a as { info?: { time?: string } }).info?.time ?? "")
-    const timeB = String((b as { info?: { time?: string } }).info?.time ?? "")
+    const timeA = String(a.info?.time ?? "")
+    const timeB = String(b.info?.time ?? "")
     return timeA.localeCompare(timeB)
   })
-  
+
+  // The transcript file holds the complete record independent of the incremental cursor
+  const workDir = opts.workDir ?? process.cwd()
+  const candidatePath = getTranscriptPath(workDir, task.sessionID)
+  const writtenPath = await writeTranscript(workDir, task, sortedMessages)
+  const pointerPath = writtenPath ?? (existsSync(candidatePath) ? candidatePath : undefined)
+
   const newMessages = consumeNewMessages(task.sessionID, sortedMessages)
   if (newMessages.length === 0) {
-    const duration = formatDuration(task.startedAt ?? new Date(), task.completedAt)
-    return `Task Result
-
-Task ID: ${task.id}
-Description: ${task.description}
-Duration: ${duration}
-Session ID: ${task.sessionID}
-
----
-
-(No new output since last check)`
+    return `${header()}(No new output since last check)${transcriptPointerLine(pointerPath)}`
   }
 
-  // Extract content from ALL messages, not just the last one
-  // Tool results may be in earlier messages while the final message is empty
-  const extractedContent: string[] = []
-  
-  for (const message of newMessages) {
-    for (const part of message.parts ?? []) {
-      // Handle both "text" and "reasoning" parts (thinking models use "reasoning")
-      if ((part.type === "text" || part.type === "reasoning") && part.text) {
-        extractedContent.push(part.text)
-      } else if (part.type === "tool_result") {
-        // Tool results contain the actual output from tool calls
-        const toolResult = part as { content?: string | Array<{ type: string; text?: string }> }
-        if (typeof toolResult.content === "string" && toolResult.content) {
-          extractedContent.push(toolResult.content)
-        } else if (Array.isArray(toolResult.content)) {
-          // Handle array of content blocks
-          for (const block of toolResult.content) {
-            // Handle both "text" and "reasoning" parts (thinking models use "reasoning")
-            if ((block.type === "text" || block.type === "reasoning") && block.text) {
-              extractedContent.push(block.text)
-            }
-          }
-        }
-      }
-    }
+  if (opts.full === true) {
+    const textContent = extractMessageContent(newMessages)
+    return `${header()}${textContent || "(No text output)"}${transcriptPointerLine(pointerPath)}`
   }
-  
-  const textContent = extractedContent
-    .filter((text) => text.length > 0)
-    .join("\n\n")
 
-  const duration = formatDuration(task.startedAt ?? new Date(), task.completedAt)
+  const finalText = findFinalAssistantText(sortedMessages)
+  return `${header()}## Final Message
 
-  return `Task Result
-
-Task ID: ${task.id}
-Description: ${task.description}
-Duration: ${duration}
-Session ID: ${task.sessionID}
-
----
-
-${textContent || "(No text output)"}`
+${finalText ?? "(No final text message - see transcript file for details)"}
+${transcriptHintLine(pointerPath, sortedMessages.length)}`
 }
 
 export function createBackgroundOutput(manager: BackgroundManager, client: OpencodeClient): ToolDefinition {
@@ -367,6 +321,7 @@ export function createBackgroundOutput(manager: BackgroundManager, client: Openc
       task_id: tool.schema.string().describe("Task ID to get output from"),
       block: tool.schema.boolean().optional().describe("Wait for completion (default: false). System notifies when done, so blocking is rarely needed."),
       timeout: tool.schema.number().optional().describe("Max wait time in ms (default: 60000, max: 600000)"),
+      full: tool.schema.boolean().optional().describe("Return the complete output inline instead of just the final message (default: false). The full transcript is always saved to a file."),
     },
     async execute(args: BackgroundOutputArgs, toolContext: { sessionID: string }) {
       try {
@@ -377,10 +332,11 @@ export function createBackgroundOutput(manager: BackgroundManager, client: Openc
 
         const shouldBlock = args.block === true
         const timeoutMs = Math.min(args.timeout ?? 60000, 600000)
+        const workDir = await resolveWorkDir(client, toolContext.sessionID)
 
         // Already completed: return result immediately (regardless of block flag)
         if (task.status === "completed") {
-          return await formatTaskResult(task, client)
+          return await formatTaskResult(task, client, { full: args.full, workDir })
         }
 
         // Error or cancelled: return status immediately
@@ -405,7 +361,7 @@ export function createBackgroundOutput(manager: BackgroundManager, client: Openc
           }
 
           if (currentTask.status === "completed") {
-            return await formatTaskResult(currentTask, client)
+            return await formatTaskResult(currentTask, client, { full: args.full, workDir })
           }
 
           if (currentTask.status === "error" || currentTask.status === "cancelled") {
