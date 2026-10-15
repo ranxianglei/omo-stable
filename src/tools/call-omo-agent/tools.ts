@@ -6,7 +6,7 @@ import type { CallOmoAgentArgs } from "./types"
 import type { BackgroundManager } from "../../features/background-agent"
 import { log, getAgentToolRestrictions, includesCaseInsensitive } from "../../shared"
 import { consumeNewMessages } from "../../shared/session-cursor"
-import { writeTranscript, findFinalAssistantText, transcriptHintLine, transcriptPointerLine, type TranscriptTask, type TranscriptMessage } from "../background-task/transcript"
+import { writeTranscript, findFinalAssistantText, finalMessageBlock, transcriptPointerLine, type TranscriptTask, type TranscriptMessage } from "../background-task/transcript"
 import { findFirstMessageWithAgent, findNearestMessageWithFields, MESSAGE_STORAGE } from "../../features/hook-message-injector"
 import { getSessionAgent } from "../../features/claude-code-session-state"
 
@@ -326,12 +326,7 @@ async function executeSync(
   if (args.full !== true) {
     const finalText = findFinalAssistantText(transcriptMessages)
     log(`[call_omo_agent] Got response (final message only), transcript: ${transcriptPath ?? "unavailable"}`)
-    return `## Final Message
-
-${finalText ?? "(No final text message - see transcript file for details)"}
-${transcriptHintLine(transcriptPath, transcriptMessages.length)}
-
-${metadata}`
+    return `${finalMessageBlock(finalText, transcriptPath, transcriptMessages.length)}\n\n${metadata}`
   }
 
   // Extract content from ALL messages, not just the last one

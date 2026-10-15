@@ -8,7 +8,7 @@ import { findNearestMessageWithFields, findFirstMessageWithAgent, MESSAGE_STORAG
 import { getSessionAgent } from "../../features/claude-code-session-state"
 import { log } from "../../shared/logger"
 import { consumeNewMessages } from "../../shared/session-cursor"
-import { getTranscriptPath, writeTranscript, formatDuration, extractMessageContent, findFinalAssistantText, transcriptHintLine, transcriptPointerLine, type TranscriptMessage } from "./transcript"
+import { getTranscriptPath, writeTranscript, formatDuration, extractMessageContent, findFinalAssistantText, finalMessageBlock, transcriptPointerLine, type TranscriptMessage } from "./transcript"
 
 type OpencodeClient = PluginInput["client"]
 
@@ -308,10 +308,7 @@ Session ID: ${task.sessionID}
   }
 
   const finalText = findFinalAssistantText(sortedMessages)
-  return `${header()}## Final Message
-
-${finalText ?? "(No final text message - see transcript file for details)"}
-${transcriptHintLine(pointerPath, sortedMessages.length)}`
+  return `${header()}${finalMessageBlock(finalText, pointerPath, sortedMessages.length)}`
 }
 
 export function createBackgroundOutput(manager: BackgroundManager, client: OpencodeClient): ToolDefinition {

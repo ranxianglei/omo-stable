@@ -80,6 +80,17 @@ Full transcript (${messageCount} messages, untruncated) saved to: ${filePath}
 Read or grep that file for details instead of pulling everything inline. Pass full=true for the complete output here.`
 }
 
+export function finalMessageBlock(
+  finalText: string | undefined,
+  filePath: string | undefined,
+  messageCount: number
+): string {
+  return `## Final Message
+
+${finalText ?? "(No final text message - see transcript file for details)"}
+${transcriptHintLine(filePath, messageCount)}`
+}
+
 function toolResultText(part: TranscriptPart): string[] {
   const out: string[] = []
   const content = part.content
