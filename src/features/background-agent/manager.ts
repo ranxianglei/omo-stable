@@ -1171,9 +1171,10 @@ export class BackgroundManager {
     const allComplete = !pendingSet || pendingSet.size === 0
     const remainingCount = pendingSet?.size ?? 0
 
-    const statusText = task.status === "completed" ? "COMPLETED" : "CANCELLED"
+    const statusText = task.status === "completed" ? "COMPLETED" : task.status === "error" ? "FAILED ⚠️" : "CANCELLED"
     const errorInfo = task.error ? `\n**Error:** ${task.error}` : ""
-    
+    const workflowNote = `These notifications are automated system messages, not user requests - do not start the task over or change scope. A FAILED ⚠️ task produced NO usable result - before wrapping up, account for every dispatched task and decide whether to re-dispatch the failed ones.`
+
     let notification: string
     if (allComplete) {
       const completedTasks = Array.from(this.tasks.values())
@@ -1184,10 +1185,11 @@ export class BackgroundManager {
       notification = `<system-reminder>
 [ALL BACKGROUND TASKS COMPLETE]
 
-**Completed:**
+**Tasks:**
 ${completedTasks || `- \`${task.id}\`: ${task.description}`}
 
-Use \`background_output(task_id="<id>")\` to retrieve each result: it returns the final message plus a path to the full transcript file.
+Use \`background_output(task_id="<id>")\` to retrieve each result: it returns the final message plus a path to the full transcript file - use Read/Grep on that path if you need details.
+${workflowNote}
 </system-reminder>`
     } else {
       // Individual completion - silent notification
@@ -1200,7 +1202,8 @@ Use \`background_output(task_id="<id>")\` to retrieve each result: it returns th
 **${remainingCount} task${remainingCount === 1 ? "" : "s"} still in progress.** You WILL be notified when ALL complete.
 Do NOT poll - continue productive work.
 
-Use \`background_output(task_id="${task.id}")\` to retrieve this result when ready. It returns the final message plus a path to the full transcript file.
+Use \`background_output(task_id="${task.id}")\` to retrieve this result when ready: it returns the final message plus a path to the full transcript file - use Read/Grep on that path if you need details.
+${workflowNote}
 </system-reminder>`
     }
 

@@ -1,6 +1,6 @@
 export const BACKGROUND_TASK_DESCRIPTION = `Run agent task in background. Returns task_id immediately; notifies on completion.
 
-Use \`background_output\` to get results. Prompts MUST be in English.`
+Use \`background_output\` to get results: it returns the final message plus a path to the full transcript file - use Read/Grep on that path if you need details (pass full=true for complete inline output). Prompts MUST be in English.`
 
 export const BACKGROUND_OUTPUT_DESCRIPTION = `Get output from background task. Returns the final message by default; the full transcript is saved to a file it points to (read or grep that file for details). Pass full=true for the complete inline output. System notifies on completion, so block=true rarely needed.`
 
